@@ -1,0 +1,280 @@
+@import 'tailwindcss';
+
+:root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  color: #24221f;
+  background: #f7f2ea;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.desk-scene {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #ded5c8;
+  background:
+    linear-gradient(#fbfaf7 0 68%, #eadfce 68% 100%);
+}
+
+.desk-scene::before {
+  position: absolute;
+  inset: 28px 32px auto auto;
+  width: 88px;
+  height: 62px;
+  border: 5px solid #d8cdbc;
+  background: #ffffff;
+  content: '';
+}
+
+.desk-scene.off-work::before,
+.desk-scene.off-work .person,
+.desk-scene.off-work .mug,
+.desk-scene.off-work .sleep-bubble,
+.desk-scene.off-work .wall-clock {
+  display: none;
+}
+
+.desk-scene.off-work .monitor {
+  right: auto;
+  left: 50%;
+  bottom: 120px;
+  transform: translateX(-50%);
+}
+
+.desk {
+  position: absolute;
+  right: 38px;
+  bottom: 70px;
+  left: 38px;
+  height: 42px;
+  border-radius: 6px;
+  background: #8b5e3c;
+  box-shadow: 0 18px 0 #654328;
+}
+
+.monitor {
+  position: absolute;
+  right: 64px;
+  bottom: 112px;
+  width: 116px;
+  height: 78px;
+  border: 8px solid #24221f;
+  border-radius: 6px;
+  background: #dfece8;
+}
+
+.monitor span {
+  position: absolute;
+  right: 28px;
+  bottom: -28px;
+  width: 48px;
+  height: 20px;
+  border-radius: 4px 4px 0 0;
+  background: #24221f;
+}
+
+.mug {
+  position: absolute;
+  right: 200px;
+  bottom: 112px;
+  width: 34px;
+  height: 38px;
+  border-radius: 0 0 8px 8px;
+  background: #b95738;
+}
+
+.mug::after {
+  position: absolute;
+  top: 8px;
+  right: -14px;
+  width: 18px;
+  height: 18px;
+  border: 5px solid #b95738;
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+  content: '';
+}
+
+.person {
+  position: absolute;
+  bottom: 106px;
+  left: max(52px, 18%);
+  width: 190px;
+  height: 185px;
+}
+
+.head {
+  position: absolute;
+  top: 10px;
+  left: 58px;
+  width: 86px;
+  height: 78px;
+  border: 5px solid #24221f;
+  border-radius: 42% 42% 48% 48%;
+  background: #f2c7a5;
+  transform: rotate(12deg);
+  transform-origin: center bottom;
+}
+
+.hair {
+  position: absolute;
+  top: -10px;
+  left: 8px;
+  width: 70px;
+  height: 28px;
+  border-radius: 28px 28px 8px 8px;
+  background: #2f2926;
+}
+
+.eye {
+  position: absolute;
+  top: 34px;
+  width: 16px;
+  height: 4px;
+  border-radius: 999px;
+  background: #24221f;
+}
+
+.eye.left {
+  left: 20px;
+}
+
+.eye.right {
+  right: 18px;
+}
+
+.mouth {
+  position: absolute;
+  bottom: 18px;
+  left: 38px;
+  width: 18px;
+  height: 9px;
+  border-bottom: 4px solid #24221f;
+  border-radius: 0 0 16px 16px;
+}
+
+.body {
+  position: absolute;
+  right: 28px;
+  bottom: 0;
+  width: 104px;
+  height: 105px;
+  border: 5px solid #24221f;
+  border-radius: 24px 24px 8px 8px;
+  background: #4f8f81;
+}
+
+.arm {
+  position: absolute;
+  right: 82px;
+  bottom: 18px;
+  width: 102px;
+  height: 28px;
+  border: 5px solid #24221f;
+  border-radius: 999px;
+  background: #f2c7a5;
+  transform: rotate(-10deg);
+}
+
+.sleep-bubble {
+  position: absolute;
+  top: 78px;
+  left: calc(18% + 180px);
+  z-index: 2;
+  color: #8b5e3c;
+  font-weight: 900;
+  opacity: 0;
+}
+
+.sleep-bubble.active {
+  animation: float-sleep 1.8s ease-in-out infinite;
+}
+
+.wall-clock {
+  position: absolute;
+  top: 58px;
+  left: 56px;
+  width: 64px;
+  height: 64px;
+  border: 6px solid #24221f;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.wall-clock span,
+.wall-clock::after {
+  position: absolute;
+  top: 27px;
+  left: 28px;
+  width: 22px;
+  height: 5px;
+  border-radius: 999px;
+  background: #24221f;
+  content: '';
+  transform-origin: 2px center;
+}
+
+.wall-clock::after {
+  width: 18px;
+  transform: rotate(-90deg);
+}
+
+@keyframes float-sleep {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  35%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-18px) scale(1.08);
+  }
+}
+
+@media (max-width: 640px) {
+  .desk-scene {
+    min-height: 300px;
+  }
+
+  .person {
+    left: 22px;
+    transform: scale(0.86);
+    transform-origin: left bottom;
+  }
+
+  .monitor {
+    right: 30px;
+    width: 96px;
+  }
+
+  .mug {
+    right: 150px;
+  }
+
+  .sleep-bubble {
+    left: 180px;
+  }
+}
