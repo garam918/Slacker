@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>개인정보처리방침 - 월루미터</title>
+    <meta
+      name="description"
+      content="월루미터에서 수집하고 사용하는 정보와 보관 방식에 대한 개인정보처리방침입니다."
+    />
+    <style>
+      body {
+        margin: 0;
+        background: #f7f2ea;
+        color: #24221f;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        line-height: 1.7;
+      }
+
+      main {
+        box-sizing: border-box;
+        max-width: 840px;
+        margin: 0 auto;
+        padding: 48px 20px 64px;
+      }
+
+      a {
+        color: #8b5e3c;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(2rem, 5vw, 3rem);
+        line-height: 1.2;
+      }
+
+      h2 {
+        margin: 36px 0 12px;
+        font-size: 1.25rem;
+      }
+
+      p,
+      li {
+        color: #5e564e;
+        font-size: 1rem;
+      }
+
+      section {
+        border-top: 1px solid #ded5c8;
+        margin-top: 28px;
+        padding-top: 8px;
+      }
+
+      .panel {
+        border: 1px solid #ded5c8;
+        border-radius: 8px;
+        background: #fff;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgb(36 34 31 / 0.08);
+      }
+
+      .muted {
+        color: #7d746a;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p><a href="/">월루미터로 돌아가기</a></p>
+      <h1>개인정보처리방침</h1>
+      <p class="muted">시행일: 2026년 5월 27일</p>
+
+      <div class="panel">
+        <p>
+          월루미터는 재미로 보는 온라인 월급 루팡 시뮬레이터입니다. 서비스는
+          계산기 동작, 랭킹 표시, 현재 루팡 중인 인원 표시, 광고 표시를 위해
+          아래 정보를 사용합니다.
+        </p>
+      </div>
+
+      <section>
+        <h2>1. 수집하거나 저장하는 정보</h2>
+        <ul>
+          <li>
+            브라우저에만 저장되는 정보: 월급, 월 근무일, 하루 근무시간, 타이머
+            기록, 퇴근 결과, 닉네임, 저장 대기 중인 랭킹 기록
+          </li>
+          <li>
+            Firebase에 저장되는 랭킹 정보: Firebase 익명 인증 UID, 닉네임,
+            누적 루팡 시간, 수정 시각
+          </li>
+          <li>
+            Firebase에 저장되는 현재 활동 정보: Firebase 익명 인증 UID, 닉네임,
+            활동 만료 시각, 수정 시각
+          </li>
+          <li>
+            광고 관련 정보: Google AdSense가 광고 제공, 부정 이용 방지,
+            통계 처리를 위해 쿠키, 광고 식별자, 접속 환경 정보를 사용할 수
+            있습니다.
+          </li>
+        </ul>
+        <p>
+          월급, 월 근무일, 하루 근무시간은 사용자의 브라우저 localStorage에만
+          저장되며 Firebase Firestore에는 저장하지 않습니다.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. 정보의 이용 목적</h2>
+        <ul>
+          <li>입력한 근무 조건을 바탕으로 루팡 시간과 금액을 계산하기 위해 사용합니다.</li>
+          <li>닉네임과 누적 루팡 시간을 이용해 실시간 랭킹을 표시합니다.</li>
+          <li>활동 상태를 이용해 현재 루팡 중인 인원 수를 표시합니다.</li>
+          <li>광고를 표시하고 광고 품질을 관리하기 위해 Google AdSense를 사용합니다.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. 보관 위치와 기간</h2>
+        <ul>
+          <li>
+            브라우저 localStorage 정보는 사용자가 브라우저 데이터를 삭제하거나
+            사이트에서 기록 초기화를 실행할 때까지 보관될 수 있습니다.
+          </li>
+          <li>
+            Firebase 랭킹 정보는 랭킹 제공을 위해 보관되며, 운영상 필요하거나
+            삭제 요청이 있는 경우 삭제될 수 있습니다.
+          </li>
+          <li>
+            현재 활동 정보는 짧은 시간 동안 현재 루팡 중인 인원을 계산하기 위해
+            사용되며, 활동 만료 시각이 지나면 집계에서 제외됩니다.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. 제3자 서비스</h2>
+        <p>
+          월루미터는 Firebase Authentication, Cloud Firestore, Google AdSense,
+          Vercel을 사용합니다. 각 서비스 제공자는 서비스 운영, 보안, 호스팅,
+          광고 제공을 위해 필요한 정보를 처리할 수 있습니다.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. 이용자의 선택</h2>
+        <ul>
+          <li>브라우저 설정에서 쿠키와 사이트 데이터를 삭제할 수 있습니다.</li>
+          <li>사이트의 기록 초기화 버튼으로 로컬 타이머 기록을 초기화할 수 있습니다.</li>
+          <li>광고 개인 최적화 설정은 Google 광고 설정에서 변경할 수 있습니다.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 문의</h2>
+        <p>
+          개인정보처리방침 또는 서비스 이용과 관련한 문의는
+          <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a>으로
+          보내주세요.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
