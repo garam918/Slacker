@@ -13,92 +13,25 @@
 - Vercel 배포 대상
 - Google AdSense
 
-## Development
+## About
 
-```bash
-npm install
-npm run dev
-```
+Slacker는 쉬는 동안 회사로부터 얼마를 벌었는지 계산해주는 웹 서비스입니다. 월급, 근무일, 근무시간을 입력하고 루팡을 시작하면 경과 시간과 누적 금액이 실시간으로 표시됩니다.
 
-## Build
+## Features
 
-```bash
-npm run build
-```
+- 월급, 월 근무일, 하루 근무시간 기반 실시간 수익 계산
+- 루팡 시작, 다시 일하기, 퇴근하기 상태 전환
+- 오늘 하루 루팡 기록 공유 문구 생성
+- 금액/시간 기준 실시간 Top 5 랭킹
+- 현재 루팡 중인 사용자 수 표시
+- 닉네임 설정과 부적절한 닉네임 방지
+- 하루 최대 루팡 시간 14시간 제한
+- 매일 자정 기준 랭킹 초기화
 
-Vercel에서는 기본 Vite 설정 그대로 빌드 명령어 `npm run build`, 출력 디렉터리 `dist`를 사용하면 됩니다.
+## Implementation
 
-## Firebase
+React와 TypeScript로 화면 상태와 계산 로직을 구성했고, Tailwind CSS로 간단한 계산기형 UI를 만들었습니다. 월급과 근무 조건은 localStorage에만 저장해 개인 입력값이 서버로 전송되지 않도록 했습니다.
 
-Firestore 랭킹을 사용하려면 `.env.local`에 Firebase 웹 앱 설정을 추가하고, Firebase Console의 Authentication에서 Anonymous provider를 활성화하세요.
+랭킹과 현재 루팡 중인 인원은 Firebase Auth의 익명 사용자 ID와 Firestore를 이용해 처리합니다. 랭킹은 날짜별 컬렉션에 저장해 매일 자정 이후 새 랭킹으로 전환되며, 활성 사용자 수는 Firestore 집계 쿼리로 읽기 비용을 줄였습니다.
 
-```bash
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-```
-
-Vercel 배포 시에도 같은 값을 Project Settings의 Environment Variables에 등록해야 합니다.
-
-랭킹 데이터는 Firestore의 `dailyRankings/{YYYY-MM-DD}/users/{uid}` 문서로 저장됩니다. 날짜별 하위 컬렉션을 사용하므로 매일 밤 12시가 지나면 새 날짜 랭킹을 읽고 씁니다. 월급, 근무일, 근무시간은 브라우저에만 저장하고 Firestore에는 저장하지 않습니다. MVP용 Firestore Rules 예시는 다음과 같습니다.
-
-```txt
-rules_version = '2';
-
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /dailyRankings/{dateKey}/users/{uid} {
-      allow read: if true;
-      allow create, update: if request.auth != null &&
-        request.auth.uid == uid &&
-        request.resource.data.uid == request.auth.uid &&
-        request.resource.data.keys().hasOnly([
-          'uid',
-          'nickname',
-          'elapsedSeconds',
-          'updatedAt'
-        ]) &&
-        request.resource.data.nickname is string &&
-        request.resource.data.nickname.size() <= 12 &&
-        (
-          !('elapsedSeconds' in request.resource.data) ||
-          request.resource.data.elapsedSeconds is number
-        );
-    }
-
-    match /activeSlackers/{uid} {
-      allow read: if true;
-      allow create, update: if request.auth != null &&
-        request.auth.uid == uid &&
-        request.resource.data.uid == request.auth.uid &&
-        request.resource.data.keys().hasOnly([
-          'uid',
-          'nickname',
-          'activeUntil',
-          'updatedAt'
-        ]) &&
-        request.resource.data.activeUntil is number;
-    }
-  }
-}
-```
-
-## AdSense
-
-`public/ads.txt`에는 다음 판매자 정보가 포함되어 있습니다.
-
-```txt
-google.com, pub-2964375076425667, DIRECT, f08c47fec0942fa0
-```
-
-광고를 표시하려면 `.env.local`과 Vercel 환경변수에 값을 추가하세요.
-
-```bash
-VITE_ADSENSE_CLIENT_ID=ca-pub-2964375076425667
-VITE_ADSENSE_RANKING_SLOT=
-```
-
-`VITE_ADSENSE_RANKING_SLOT`에는 AdSense에서 생성한 Display ad unit의 `data-ad-slot` 값을 넣으면 됩니다.
+광고 영역과 SEO 메타 태그, robots.txt, sitemap.xml, 개인정보처리방침 페이지를 포함해 Vercel 배포를 기준으로 구성했습니다.
