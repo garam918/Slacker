@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth'
 import AdBanner from './AdBanner'
+import ContentSections from './ContentSections'
 import {
   markActiveSlacker,
   markInactiveSlacker,
@@ -322,6 +323,7 @@ function App() {
   >('idle')
   const [shareMessage, setShareMessage] = useState('')
   const [shareText, setShareText] = useState('')
+  const [shareCardMessage, setShareCardMessage] = useState('')
   const [rankingMessage, setRankingMessage] = useState('')
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   const [activeSlackerCount, setActiveSlackerCount] = useState(0)
@@ -371,6 +373,7 @@ function App() {
         setShareStatus('idle')
         setShareMessage('')
         setShareText('')
+        setShareCardMessage('')
 
         return nextTodayKey
       })
@@ -496,9 +499,13 @@ function App() {
     settings.workDays * settings.workHours * 3600,
     1,
   )
+  const secondlyRate = settings.salary / secondsPerMonth
+  const minutelyRate = secondlyRate * 60
   const earnedAmount = (settings.salary / secondsPerMonth) * elapsedSeconds
   const hourlyRate =
     settings.salary / Math.max(settings.workDays * settings.workHours, 1)
+  const dailyLimitAmount = (settings.salary / secondsPerMonth) * MAX_DAILY_SLACKING_SECONDS
+  const repeatedMonthlyAmount = earnedAmount * settings.workDays
 
   const calculateEarnedAmount = useCallback(
     (seconds: number) => (settings.salary / secondsPerMonth) * seconds,
@@ -797,6 +804,7 @@ function App() {
     setShareStatus('idle')
     setShareMessage('')
     setShareText('')
+    setShareCardMessage('')
   }
 
   const finishWork = () => {
@@ -911,6 +919,48 @@ function App() {
       setShareStatus('error')
       setShareMessage('아래 공유 문구를 직접 복사해 주세요.')
     }
+  }
+
+  const downloadShareCard = () => {
+    if (elapsedSeconds <= 0) {
+      setShareCardMessage('공유 카드로 만들 루팡 기록이 아직 없습니다.')
+      return
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = 1200
+    canvas.height = 630
+    const context = canvas.getContext('2d')
+
+    if (!context) {
+      setShareCardMessage('공유 카드를 만들지 못했습니다.')
+      return
+    }
+
+    context.fillStyle = '#f7f2ea'
+    context.fillRect(0, 0, canvas.width, canvas.height)
+    context.fillStyle = '#24221f'
+    context.fillRect(64, 64, 1072, 502)
+    context.fillStyle = '#fff8ef'
+    context.fillRect(92, 92, 1016, 446)
+    context.fillStyle = '#8b5e3c'
+    context.font = '700 36px system-ui, sans-serif'
+    context.fillText('월루미터 루팡 기록', 142, 170)
+    context.fillStyle = '#24221f'
+    context.font = '900 72px system-ui, sans-serif'
+    context.fillText(formatWon(earnedAmount), 142, 280)
+    context.font = '700 40px system-ui, sans-serif'
+    context.fillText(`${formatShareDuration(elapsedSeconds)} 월급 루팡 성공`, 142, 356)
+    context.fillStyle = '#5e564e'
+    context.font = '600 30px system-ui, sans-serif'
+    context.fillText(`닉네임: ${nickname}`, 142, 424)
+    context.fillText('너도 해보기: slacker-nu.vercel.app', 142, 482)
+
+    const link = document.createElement('a')
+    link.href = canvas.toDataURL('image/png')
+    link.download = `wolumeter-${getTodayKey()}.png`
+    link.click()
+    setShareCardMessage('공유 카드 이미지를 저장했습니다.')
   }
 
   return (
@@ -1187,6 +1237,19 @@ function App() {
                       value={shareText}
                     />
                   ) : null}
+                  <button
+                    className="mt-3 w-full rounded-md border border-[#d8cdbc] px-4 py-3 text-sm font-semibold text-[#6e6259] transition hover:bg-[#f2ebe1] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-[#aaa095]"
+                    disabled={elapsedSeconds <= 0}
+                    type="button"
+                    onClick={downloadShareCard}
+                  >
+                    결과 카드 이미지 저장
+                  </button>
+                  {shareCardMessage ? (
+                    <p className="mt-2 text-center text-xs font-semibold text-[#3f6b4d]">
+                      {shareCardMessage}
+                    </p>
+                  ) : null}
                 </div>
 
                 <button
@@ -1312,6 +1375,14 @@ function App() {
             format="horizontal"
             slot={import.meta.env.VITE_ADSENSE_RANKING_SLOT}
           />
+
+          <ContentSections
+            dailyLimitAmount={dailyLimitAmount}
+            earnedAmount={earnedAmount}
+            minutelyRate={minutelyRate}
+            repeatedMonthlyAmount={repeatedMonthlyAmount}
+            secondlyRate={secondlyRate}
+          />
         </div>
         <footer className="border-t border-[#ded5c8] py-5 text-center text-xs font-semibold leading-5 text-[#7d746a]">
           <p>재미로 보는 월급 루팡 계산기입니다.</p>
@@ -1322,6 +1393,42 @@ function App() {
               href="mailto:dev.garam918@gmail.com"
             >
               dev.garam918@gmail.com
+            </a>
+          </p>
+          <p className="mt-2">
+            <a
+              className="text-[#8b5e3c] underline-offset-2 hover:underline"
+              href="/guide.html"
+            >
+              계산 공식
+            </a>
+            <span className="mx-2 text-[#c2b2a2]">|</span>
+            <a
+              className="text-[#8b5e3c] underline-offset-2 hover:underline"
+              href="/examples.html"
+            >
+              예시
+            </a>
+            <span className="mx-2 text-[#c2b2a2]">|</span>
+            <a
+              className="text-[#8b5e3c] underline-offset-2 hover:underline"
+              href="/ranking.html"
+            >
+              랭킹 기준
+            </a>
+            <span className="mx-2 text-[#c2b2a2]">|</span>
+            <a
+              className="text-[#8b5e3c] underline-offset-2 hover:underline"
+              href="/faq.html"
+            >
+              FAQ
+            </a>
+            <span className="mx-2 text-[#c2b2a2]">|</span>
+            <a
+              className="text-[#8b5e3c] underline-offset-2 hover:underline"
+              href="/about.html"
+            >
+              About
             </a>
           </p>
           <p className="mt-2">
