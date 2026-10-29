@@ -1,60 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth'
-import AdBanner from './AdBanner'
 import ContentSections from './ContentSections'
-import {
-  markActiveSlacker,
-  markInactiveSlacker,
-  subscribeToActiveSlackerCount,
-} from './activity'
+import PrivacyTools from './PrivacyTools'
+import HistoryDashboard from './HistoryDashboard'
+import PriceCalculator from './PriceCalculator'
+import { archiveTracker } from './history'
+import './features.css'
+import { markActiveSlacker, markInactiveSlacker, subscribeToActiveSlackerCount } from './activity'
 import { auth, isFirebaseConfigured } from './firebase'
-import {
-  getRankingTopPercent,
-  isNicknameAvailable,
-  renameRankingNickname,
-  saveRanking,
-  subscribeToRankings,
-  type RankingEntry,
-  type RankingSort,
-} from './rankings'
-
-type Settings = {
-  salary: number
-  workDays: number
-  workHours: number
-}
-
-type SavedSession = {
-  sessionDate: string
-  accumulatedSeconds: number
-  submittedSeconds: number
-  pendingSubmittedSeconds: number
-  isSlacking: boolean
-  startedAt: number | null
-  isOffWork: boolean
-  finishedAmount: number | null
-}
-
-type PendingRankingSubmission = {
-  id: string
-  uid?: string
-  nickname: string
-  elapsedSeconds: number
-  earnedAmount: number
-  salary: number
-  workDays: number
-  workHours: number
-  finalElapsedSeconds: number
-  sessionDate: string
-  createdAt: number
-}
+import { getOwnRanking, getRankingTopPercent, isNicknameAvailable, renameRankingNickname, subscribeToRankings, type RankingEntry, type RankingSort } from './rankings'
+import { calculateAmount, elapsed, getTodayKey, MAX_DAILY_SECONDS, validateSettings, type Settings } from './session'
+import { useDailyTracker } from './useDailyTracker'
 
 const SETTINGS_KEY = 'slacker.settings'
-const SESSION_KEY = 'slacker.session'
 const NICKNAME_KEY = 'slacker.nickname'
-const PENDING_RANKINGS_KEY = 'slacker.pendingRankings'
 const MAX_NICKNAME_LENGTH = 12
-const MAX_DAILY_SLACKING_SECONDS = 14 * 60 * 60
 const SHARE_URL = 'https://slacker-nu.vercel.app/'
 const blockedNicknameWords = [
   'admin',
@@ -114,56 +74,9 @@ const defaultSettings: Settings = {
   workHours: 8,
 }
 
-function getTodayKey() {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-
-  return `${year}-${month}-${day}`
-}
-
-function createDefaultSession(): SavedSession {
-  return {
-    sessionDate: getTodayKey(),
-    accumulatedSeconds: 0,
-    submittedSeconds: 0,
-    pendingSubmittedSeconds: 0,
-    isSlacking: false,
-    startedAt: null,
-    isOffWork: false,
-    finishedAmount: null,
-  }
-}
-
-const currencyFormatter = new Intl.NumberFormat('ko-KR', {
-  style: 'currency',
-  currency: 'KRW',
-  maximumFractionDigits: 0,
-})
-
+const currencyFormatter = new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 })
 const numberFormatter = new Intl.NumberFormat('ko-KR')
-
-function formatWon(amount: number) {
-  return `${numberFormatter.format(Math.floor(amount))}원`
-}
-
-function clampDailySeconds(seconds: number) {
-  return Math.min(Math.max(Math.floor(seconds), 0), MAX_DAILY_SLACKING_SECONDS)
-}
-
-function getCurrentSession(session: SavedSession): SavedSession {
-  if (session.sessionDate !== getTodayKey()) {
-    return createDefaultSession()
-  }
-
-  return {
-    ...session,
-    accumulatedSeconds: clampDailySeconds(session.accumulatedSeconds),
-    submittedSeconds: clampDailySeconds(session.submittedSeconds),
-    pendingSubmittedSeconds: clampDailySeconds(session.pendingSubmittedSeconds),
-  }
-}
+function formatWon(amount: number) { return `${numberFormatter.format(Math.round(amount))}원` }
 
 function readStorage<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') {
@@ -238,10 +151,6 @@ function createAnonymousNickname() {
   return `익명 루팡 ${Math.floor(1000 + Math.random() * 9000)}`
 }
 
-function createSubmissionId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-}
-
 function validateNickname(value: string) {
   const nickname = value.trim()
   const normalizedNickname = nickname.toLowerCase().replace(/[\s_-]/g, '')
@@ -265,710 +174,220 @@ function validateNickname(value: string) {
   return ''
 }
 
-function mergeRankingEntry(
-  entries: Record<string, RankingEntry>,
-  nickname: string,
-  elapsedSeconds: number,
-  earnedAmount: number,
-) {
-  const currentEntry = entries[nickname] ?? {
-    id: nickname,
-    nickname,
-    elapsedSeconds: 0,
-    earnedAmount: 0,
-  }
-
-  entries[nickname] = {
-    ...currentEntry,
-    elapsedSeconds: currentEntry.elapsedSeconds + elapsedSeconds,
-    earnedAmount: currentEntry.earnedAmount + earnedAmount,
-  }
-}
-
 function App() {
-  const [settings, setSettings] = useState<Settings>(() =>
-    readStorage(SETTINGS_KEY, defaultSettings),
-  )
-  const [session, setSession] = useState<SavedSession>(() =>
-    getCurrentSession(readStorage(SESSION_KEY, createDefaultSession())),
-  )
+  const [settings, setSettings] = useState<Settings>(() => readStorage(SETTINGS_KEY, defaultSettings))
   const [nickname, setNickname] = useState(() => {
-    const savedNickname = readStorage<string | null>(NICKNAME_KEY, null)
-
-    return typeof savedNickname === 'string' && savedNickname !== '[object Object]'
-      ? savedNickname
-      : createAnonymousNickname()
+    const saved = readStorage<string | null>(NICKNAME_KEY, null)
+    return typeof saved === 'string' && saved !== '[object Object]' ? saved : createAnonymousNickname()
   })
   const [uid, setUid] = useState<string | null>(null)
-  const [authMessage, setAuthMessage] = useState(
-    isFirebaseConfigured ? '익명 로그인 준비 중입니다.' : '',
-  )
+  const [authMessage, setAuthMessage] = useState(isFirebaseConfigured ? '익명 로그인 준비 중입니다.' : '')
   const [nicknameDraft, setNicknameDraft] = useState(nickname)
   const [nicknameMessage, setNicknameMessage] = useState('')
-  const [nicknameSaveStatus, setNicknameSaveStatus] = useState<
-    'idle' | 'checking' | 'saved' | 'error'
-  >('idle')
-  const [now, setNow] = useState(() => Date.now())
-  const [todayKey, setTodayKey] = useState(() => getTodayKey())
-  const [rankingSort, setRankingSort] = useState<RankingSort>('amount')
+  const [nicknameSaveStatus, setNicknameSaveStatus] = useState<'idle' | 'checking' | 'saved' | 'error'>('idle')
+  const [rankingSort, setRankingSort] = useState<RankingSort>('time')
   const [rankings, setRankings] = useState<RankingEntry[]>([])
-  const [rankingStatus, setRankingStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
-    isFirebaseConfigured ? 'loading' : 'idle',
-  )
-  const [rankingSaveStatus, setRankingSaveStatus] = useState<
-    'idle' | 'saving' | 'saved' | 'error'
-  >('idle')
-  const [shareStatus, setShareStatus] = useState<
-    'idle' | 'sharing' | 'shared' | 'copied' | 'error'
-  >('idle')
+  const [rankingStatus, setRankingStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(isFirebaseConfigured ? 'loading' : 'idle')
+  const [rankingMessage, setRankingMessage] = useState('')
+  const [recovery, setRecovery] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'shared' | 'copied' | 'error'>('idle')
   const [shareMessage, setShareMessage] = useState('')
   const [shareText, setShareText] = useState('')
   const [shareCardMessage, setShareCardMessage] = useState('')
-  const [rankingMessage, setRankingMessage] = useState('')
   const [isInfoOpen, setIsInfoOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(() => window.matchMedia('(min-width: 1024px)').matches)
   const [activeSlackerCount, setActiveSlackerCount] = useState(0)
   const [activeSlackerMessage, setActiveSlackerMessage] = useState('')
-  const [pendingRankings, setPendingRankings] = useState<
-    PendingRankingSubmission[]
-  >(() =>
-    readStorage<PendingRankingSubmission[]>(PENDING_RANKINGS_KEY, []).filter(
-      (submission) => submission.sessionDate === getTodayKey(),
-    ),
-  )
-
-  useEffect(() => {
-    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-  }, [settings])
-
-  useEffect(() => {
-    window.localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-  }, [session])
-
-  useEffect(() => {
-    window.localStorage.setItem(NICKNAME_KEY, JSON.stringify(nickname))
-  }, [nickname])
-
-  useEffect(() => {
-    window.localStorage.setItem(
-      PENDING_RANKINGS_KEY,
-      JSON.stringify(pendingRankings),
-    )
-  }, [pendingRankings])
-
-  useEffect(() => {
-    const checkDateRollover = () => {
-      const nextTodayKey = getTodayKey()
-
-      setTodayKey((currentTodayKey) => {
-        if (currentTodayKey === nextTodayKey) {
-          return currentTodayKey
-        }
-
-        setSession(createDefaultSession())
-        setPendingRankings([])
-        setRankings([])
-        setRankingStatus(isFirebaseConfigured ? 'loading' : 'idle')
-        setRankingSaveStatus('idle')
-        setRankingMessage('')
-        setShareStatus('idle')
-        setShareMessage('')
-        setShareText('')
-        setShareCardMessage('')
-
-        return nextTodayKey
-      })
-    }
-    const rolloverTimerId = window.setInterval(checkDateRollover, 30_000)
-
-    checkDateRollover()
-
-    return () => window.clearInterval(rolloverTimerId)
-  }, [])
-
-  useEffect(() => {
-    if (!auth) {
-      return
-    }
-
-    const firebaseAuth = auth
-    const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-      if (user) {
-        setUid(user.uid)
-        setAuthMessage('')
-        return
-      }
-
-      setAuthMessage('익명 로그인 중입니다.')
-      void signInAnonymously(firebaseAuth).catch(() => {
-        setUid(null)
-        setAuthMessage('익명 로그인에 실패했습니다. Firebase Auth 설정을 확인해 주세요.')
-      })
-    })
-
-    return unsubscribe
-  }, [])
-
-  useEffect(() => {
-    if (!isFirebaseConfigured) {
-      return
-    }
-
-    const unsubscribe = subscribeToRankings(
-      rankingSort,
-      (entries) => {
-        setRankings(entries)
-        setRankingStatus('ready')
-        setRankingMessage('')
-      },
-      (message) => {
-        setRankings([])
-        setRankingStatus('error')
-        setRankingMessage(message)
-      },
-    )
-
-    return () => unsubscribe?.()
-  }, [rankingSort, todayKey])
-
-  useEffect(() => {
-    if (!isFirebaseConfigured) {
-      return
-    }
-
-    const unsubscribe = subscribeToActiveSlackerCount(
-      (count) => {
-        setActiveSlackerCount(count)
-        setActiveSlackerMessage('')
-      },
-      () => {
-        setActiveSlackerCount(0)
-        setActiveSlackerMessage('루팡 중 인원을 불러오지 못했습니다.')
-      },
-    )
-
-    return () => unsubscribe?.()
-  }, [])
-
-  useEffect(() => {
-    if (!session.isSlacking) {
-      return
-    }
-
-    const timerId = window.setInterval(() => setNow(Date.now()), 250)
-
-    return () => window.clearInterval(timerId)
-  }, [session.isSlacking])
-
-  useEffect(() => {
-    if (!isFirebaseConfigured || !uid || !session.isSlacking) {
-      return
-    }
-
-    void markActiveSlacker({ nickname, uid }).catch(() => {
-      setActiveSlackerMessage('루팡 중 상태 저장에 실패했습니다.')
-    })
-    const heartbeatId = window.setInterval(() => {
-      void markActiveSlacker({ nickname, uid }).catch(() => {
-        setActiveSlackerMessage('루팡 중 상태 저장에 실패했습니다.')
-      })
-    }, 30_000)
-
-    return () => {
-      window.clearInterval(heartbeatId)
-      void markInactiveSlacker(uid)
-    }
-  }, [nickname, session.isSlacking, uid])
-
-  const elapsedSeconds = useMemo(() => {
-    const liveSeconds =
-      session.isSlacking && session.startedAt
-        ? Math.floor((now - session.startedAt) / 1000)
-        : 0
-
-    return clampDailySeconds(session.accumulatedSeconds + Math.max(liveSeconds, 0))
-  }, [now, session])
-
-  const dailyUsedSeconds = Math.max(
-    elapsedSeconds,
-    session.submittedSeconds,
-    session.pendingSubmittedSeconds,
-  )
-  const hasReachedDailyLimit = dailyUsedSeconds >= MAX_DAILY_SLACKING_SECONDS
-
-  const secondsPerMonth = Math.max(
-    settings.workDays * settings.workHours * 3600,
-    1,
-  )
-  const secondlyRate = settings.salary / secondsPerMonth
+  const { tracker, now, act, restore, rename, saveStatus: rankingSaveStatus, storageMessage, retry } = useDailyTracker(nickname, uid, isFirebaseConfigured, settings)
+  const session = tracker.session
+  const pendingRankings = tracker.pending
+  const todayKey = session.sessionDate
+  const elapsedSeconds = elapsed(session, now)
+  const historyRecords = archiveTracker(tracker, tracker, now, settings).history ?? []
+  const displayedSeconds = Math.max(0, elapsedSeconds - session.displayOffsetSeconds)
+  const hasReachedDailyLimit = elapsedSeconds >= MAX_DAILY_SECONDS
+  const settingsMessage = validateSettings(settings)
+  const calculateEarnedAmount = useCallback((seconds: number) => calculateAmount(seconds, settings), [settings])
+  const earnedAmount = calculateEarnedAmount(elapsedSeconds)
+  const displayedAmount = calculateEarnedAmount(displayedSeconds)
+  const secondsPerMonth = settingsMessage ? 0 : settings.workDays * settings.workHours * 3600
+  const secondlyRate = secondsPerMonth ? settings.salary / secondsPerMonth : 0
   const minutelyRate = secondlyRate * 60
-  const earnedAmount = (settings.salary / secondsPerMonth) * elapsedSeconds
-  const hourlyRate =
-    settings.salary / Math.max(settings.workDays * settings.workHours, 1)
-  const dailyLimitAmount = (settings.salary / secondsPerMonth) * MAX_DAILY_SLACKING_SECONDS
-  const repeatedMonthlyAmount = earnedAmount * settings.workDays
+  const hourlyRate = minutelyRate * 60
+  const dailyLimitAmount = calculateEarnedAmount(MAX_DAILY_SECONDS)
+  const repeatedMonthlyAmount = settingsMessage ? 0 : calculateEarnedAmount(elapsedSeconds * settings.workDays)
+  const rankingNotice = rankingMessage
+  const saveBlockedMessage = storageMessage || (isFirebaseConfigured && !uid ? authMessage : '') ||
+    (recovery === 'error' ? '오늘 서버 기록을 확인하지 못했습니다. 로컬 기록은 보관되며 연결 후 다시 저장합니다.' : '')
+  const isPreparing = isFirebaseConfigured && (!uid || recovery === 'loading')
 
-  const calculateEarnedAmount = useCallback(
-    (seconds: number) => (settings.salary / secondsPerMonth) * seconds,
-    [secondsPerMonth, settings.salary],
-  )
-  const rankingNotice = isFirebaseConfigured
-    ? rankingMessage
-    : 'Firebase 환경변수를 설정하면 실시간 랭킹이 활성화됩니다.'
-  const saveBlockedMessage =
-    isFirebaseConfigured && !uid
-      ? authMessage || '익명 로그인 준비 중입니다.'
-      : ''
-  const visibleRankings = useMemo(() => {
-    const rankingsByNickname = rankings.reduce<Record<string, RankingEntry>>(
-      (entries, entry) => {
-        mergeRankingEntry(
-          entries,
-          entry.nickname,
-          entry.elapsedSeconds,
-          calculateEarnedAmount(entry.elapsedSeconds),
-        )
-
-        return entries
-      },
-      {},
-    )
-
-    pendingRankings.forEach((submission) => {
-      mergeRankingEntry(
-        rankingsByNickname,
-        submission.nickname,
-        submission.elapsedSeconds,
-        calculateEarnedAmount(submission.elapsedSeconds),
-      )
-    })
-
-    const alreadyQueuedSeconds = Math.max(
-      session.submittedSeconds,
-      session.pendingSubmittedSeconds,
-    )
-    const liveRankingSeconds = Math.max(elapsedSeconds - alreadyQueuedSeconds, 0)
-
-    if (session.isSlacking && liveRankingSeconds > 0) {
-      mergeRankingEntry(
-        rankingsByNickname,
-        nickname,
-        liveRankingSeconds,
-        calculateEarnedAmount(liveRankingSeconds),
-      )
+  useEffect(() => { try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)) } catch { /* The calculator also works without persistent settings. */ } }, [settings])
+  useEffect(() => { try { localStorage.setItem(NICKNAME_KEY, JSON.stringify(nickname)) } catch { /* Keep the nickname in memory when storage is unavailable. */ } }, [nickname])
+  useEffect(() => {
+    const id = window.location.hash.slice(1)
+    if (id === 'my-records' || id === 'price-time') {
+      requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView({ block: 'start' }))
     }
+  }, [])
+  useEffect(() => {
+    if (!auth) return
+    const firebaseAuth = auth
+    return onAuthStateChanged(firebaseAuth, user => {
+      if (user) { setUid(user.uid); setAuthMessage(''); return }
+      void signInAnonymously(firebaseAuth).catch(() => setAuthMessage('익명 로그인에 실패했습니다. 연결을 확인해 주세요.'))
+    })
+  }, [])
+  useEffect(() => {
+    if (!uid || !isFirebaseConfigured) return
+    let active = true
+    const recover = async () => {
+      setRecovery('loading')
+      try {
+        const total = await getOwnRanking(uid, todayKey)
+        if (active) { restore(todayKey, total); setRecovery('ready') }
+      } catch { if (active) setRecovery('error') }
+    }
+    void recover()
+    window.addEventListener('online', recover)
+    return () => { active = false; window.removeEventListener('online', recover) }
+  }, [uid, todayKey, restore])
+  useEffect(() => {
+    if (!isFirebaseConfigured) return
+    return subscribeToRankings(todayKey,
+      entries => { setRankings(entries); setRankingStatus('ready'); setRankingMessage('') },
+      message => { setRankings([]); setRankingStatus('error'); setRankingMessage(message) },
+    ) ?? undefined
+  }, [todayKey])
+  useEffect(() => {
+    if (!isFirebaseConfigured) return
+    return subscribeToActiveSlackerCount(
+      count => { setActiveSlackerCount(count); setActiveSlackerMessage('') },
+      () => setActiveSlackerMessage('현재 인원을 불러오지 못했습니다.'),
+    ) ?? undefined
+  }, [])
+  useEffect(() => {
+    if (!isFirebaseConfigured || !uid || !session.isSlacking) return
+    const heartbeat = () => void markActiveSlacker({ nickname, uid }).catch(() => setActiveSlackerMessage('활동 상태를 저장하지 못했습니다.'))
+    heartbeat()
+    const timer = window.setInterval(heartbeat, 30_000)
+    return () => {
+      window.clearInterval(timer)
+      void markInactiveSlacker(uid).catch(() => {})
+    }
+  }, [nickname, uid, session.isSlacking])
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)')
+    const change = () => setSettingsOpen(query.matches)
+    query.addEventListener('change', change)
+    return () => query.removeEventListener('change', change)
+  }, [])
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsInfoOpen(false) }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [])
 
-    return Object.values(rankingsByNickname)
-      .sort((a, b) =>
-        rankingSort === 'amount'
-          ? b.earnedAmount - a.earnedAmount
-          : b.elapsedSeconds - a.elapsedSeconds,
-      )
-      .slice(0, 5)
-  }, [
-    elapsedSeconds,
-    nickname,
-    pendingRankings,
-    rankingSort,
-    rankings,
-    calculateEarnedAmount,
-    session.isSlacking,
-    session.pendingSubmittedSeconds,
-    session.submittedSeconds,
-  ])
+  const visibleRankings = (() => {
+    const entries = new Map(rankings.map(entry => [entry.id, { ...entry, earnedAmount: calculateEarnedAmount(entry.elapsedSeconds) }]))
+    if (uid && elapsedSeconds > 0) {
+      const previous = entries.get(uid)
+      const total = Math.max(elapsedSeconds, previous?.elapsedSeconds ?? 0)
+      entries.set(uid, { id: uid, nickname, elapsedSeconds: total, earnedAmount: calculateEarnedAmount(total) })
+    }
+    return [...entries.values()].sort((a, b) => b.elapsedSeconds - a.elapsedSeconds || a.id.localeCompare(b.id)).slice(0, 5)
+  })()
 
   const updateSetting = (key: keyof Settings, value: string) => {
-    const numericValue = Number(value)
-
-    setSettings((current) => ({
-      ...current,
-      [key]: Number.isFinite(numericValue) ? Math.max(numericValue, 0) : 0,
-    }))
+    setSettings(current => ({ ...current, [key]: value === '' ? 0 : Number(value) }))
   }
-
   const updateNicknameDraft = (value: string) => {
-    setNicknameDraft(value)
-    setNicknameSaveStatus('idle')
-    setNicknameMessage(validateNickname(value))
+    setNicknameDraft(value); setNicknameSaveStatus('idle'); setNicknameMessage(validateNickname(value))
   }
-
-  const saveNickname = () => {
-    const nextNickname = nicknameDraft.trim().replace(/\s+/g, ' ')
-    const validationMessage = validateNickname(nextNickname)
-
-    if (validationMessage) {
-      setNicknameSaveStatus('error')
-      setNicknameMessage(validationMessage)
-      return
+  const saveNickname = async () => {
+    const next = nicknameDraft.trim().replace(/\s+/g, ' ')
+    const message = validateNickname(next)
+    if (message || !uid) {
+      setNicknameSaveStatus('error'); setNicknameMessage(message || '익명 로그인 후 저장할 수 있습니다.'); return
     }
-
     setNicknameSaveStatus('checking')
-    setNicknameMessage('닉네임 중복을 확인하는 중입니다.')
-
-    if (!uid) {
-      setNicknameSaveStatus('error')
-      setNicknameMessage('익명 로그인이 완료된 뒤 닉네임을 저장할 수 있습니다.')
-      return
-    }
-
-    void isNicknameAvailable(nextNickname, nickname, uid)
-      .then((available) => {
-        if (!available) {
-          setNicknameSaveStatus('error')
-          setNicknameMessage('이미 사용 중인 닉네임입니다.')
-          return
-        }
-
-        return renameRankingNickname(uid, nickname, nextNickname).then(() => {
-          setNickname(nextNickname)
-          setNicknameDraft(nextNickname)
-          setPendingRankings((current) =>
-            current.map((submission) => ({
-              ...submission,
-              nickname:
-                submission.nickname === nickname ? nextNickname : submission.nickname,
-            })),
-          )
-          setNicknameSaveStatus('saved')
-          setNicknameMessage('닉네임이 저장되었습니다.')
-        })
-      })
-      .catch(() => {
-        setNicknameSaveStatus('error')
-        setNicknameMessage('닉네임 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.')
-      })
-  }
-
-  const startSlacking = () => {
-    const currentSession = getCurrentSession(session)
-    const currentDailyUsedSeconds = Math.max(
-      currentSession.accumulatedSeconds,
-      currentSession.submittedSeconds,
-      currentSession.pendingSubmittedSeconds,
-    )
-
-    if (currentDailyUsedSeconds >= MAX_DAILY_SLACKING_SECONDS) {
-      setSession({
-        ...currentSession,
-        isSlacking: false,
-        startedAt: null,
-        isOffWork: true,
-        finishedAmount: calculateEarnedAmount(MAX_DAILY_SLACKING_SECONDS),
-      })
-      return
-    }
-
-    setNow(Date.now())
-    setRankingSaveStatus('idle')
-    setSession({
-      ...currentSession,
-      isSlacking: true,
-      startedAt: Date.now(),
-      isOffWork: false,
-      finishedAmount: null,
-    })
-  }
-
-  const removePendingRanking = (
-    current: PendingRankingSubmission[],
-    submissionId: string,
-  ) => current.filter((submission) => submission.id !== submissionId)
-
-  const flushPendingRankings = useCallback(async (
-    submissions: PendingRankingSubmission[],
-  ) => {
-    if (!isFirebaseConfigured || !uid || submissions.length === 0) {
-      return
-    }
-
-    setRankingSaveStatus('saving')
-
     try {
-      for (const submission of submissions) {
-        await saveRanking({
-          ...submission,
-          uid,
-        })
-        setPendingRankings((current) =>
-          removePendingRanking(current, submission.id),
-        )
-        setSession((current) => ({
-          ...current,
-          submittedSeconds: Math.max(
-            current.submittedSeconds,
-            submission.finalElapsedSeconds,
-          ),
-          pendingSubmittedSeconds:
-            current.pendingSubmittedSeconds > submission.finalElapsedSeconds
-              ? current.pendingSubmittedSeconds
-              : Math.max(current.submittedSeconds, submission.finalElapsedSeconds),
-        }))
+      if (!await isNicknameAvailable(next, nickname, uid)) {
+        setNicknameSaveStatus('error'); setNicknameMessage('이미 사용 중인 닉네임입니다.'); return
       }
-
-      setRankingSaveStatus('saved')
-      setRankingMessage('')
-    } catch {
-      setRankingSaveStatus('error')
-      setRankingStatus('error')
-      setRankingMessage(
-        '랭킹 저장에 실패했습니다. 기록은 이 브라우저에 보관되어 자동으로 다시 시도됩니다.',
-      )
-    }
-  }, [uid])
-
-  useEffect(() => {
-    if (!isFirebaseConfigured || pendingRankings.length === 0) {
-      return
-    }
-
-    const retryTimerId = window.setTimeout(() => {
-      void flushPendingRankings(pendingRankings)
-    }, 500)
-
-    return () => window.clearTimeout(retryTimerId)
-  }, [flushPendingRankings, pendingRankings, uid])
-
-  const submitRankingDelta = (
-    rankingSeconds: number,
-    finalElapsedSeconds: number,
-  ) => {
-    if (!isFirebaseConfigured || rankingSeconds <= 0) {
-      return
-    }
-
-    const rankingEarnedAmount = calculateEarnedAmount(rankingSeconds)
-    const submission: PendingRankingSubmission = {
-      id: createSubmissionId(),
-      uid: uid ?? undefined,
-      nickname,
-      elapsedSeconds: rankingSeconds,
-      earnedAmount: rankingEarnedAmount,
-      salary: settings.salary,
-      workDays: settings.workDays,
-      workHours: settings.workHours,
-      finalElapsedSeconds,
-      sessionDate: session.sessionDate,
-      createdAt: Date.now(),
-    }
-
-    setRankingSaveStatus('saving')
-    setSession((current) => ({
-      ...current,
-      pendingSubmittedSeconds: Math.max(
-        current.pendingSubmittedSeconds,
-        finalElapsedSeconds,
-      ),
-    }))
-    setPendingRankings((current) => [...current, submission])
-
-    void flushPendingRankings([...pendingRankings, submission])
+      await renameRankingNickname(uid, nickname, next)
+      rename(next); setNickname(next); setNicknameDraft(next)
+      setNicknameSaveStatus('saved'); setNicknameMessage('닉네임이 저장되었습니다.')
+    } catch { setNicknameSaveStatus('error'); setNicknameMessage('닉네임 저장에 실패했습니다. 다시 시도해 주세요.') }
   }
-
-  const stopSlacking = () => {
-    const additionalSeconds =
-      session.isSlacking && session.startedAt
-        ? Math.floor((Date.now() - session.startedAt) / 1000)
-        : 0
-    const finalElapsedSeconds = clampDailySeconds(
-      session.accumulatedSeconds + Math.max(additionalSeconds, 0),
-    )
-    const alreadyQueuedSeconds = Math.max(
-      session.submittedSeconds,
-      session.pendingSubmittedSeconds,
-    )
-    const rankingSeconds = Math.max(
-      finalElapsedSeconds - alreadyQueuedSeconds,
-      0,
-    )
-
-    setSession({
-      sessionDate: getTodayKey(),
-      accumulatedSeconds: finalElapsedSeconds,
-      submittedSeconds: session.submittedSeconds,
-      pendingSubmittedSeconds: session.pendingSubmittedSeconds,
-      isSlacking: false,
-      startedAt: null,
-      isOffWork: false,
-      finishedAmount: null,
-    })
-
-    submitRankingDelta(rankingSeconds, finalElapsedSeconds)
-  }
-
+  const startSlacking = () => { if (!settingsMessage && !isPreparing) act('start') }
+  const stopSlacking = () => act('pause')
+  const finishWork = () => act('finish')
   const resetSession = () => {
-    setSession((current) => ({
-      ...createDefaultSession(),
-      submittedSeconds: current.submittedSeconds,
-      pendingSubmittedSeconds: current.pendingSubmittedSeconds,
-    }))
-    setNow(Date.now())
-    setShareStatus('idle')
-    setShareMessage('')
-    setShareText('')
-    setShareCardMessage('')
+    act('reset'); setShareStatus('idle'); setShareText(''); setShareMessage(''); setShareCardMessage('')
   }
-
-  const finishWork = () => {
-    const additionalSeconds =
-      session.isSlacking && session.startedAt
-        ? Math.floor((Date.now() - session.startedAt) / 1000)
-        : 0
-    const finalElapsedSeconds = clampDailySeconds(
-      session.accumulatedSeconds + Math.max(additionalSeconds, 0),
-    )
-    const finalEarnedAmount = calculateEarnedAmount(finalElapsedSeconds)
-    const alreadyQueuedSeconds = Math.max(
-      session.submittedSeconds,
-      session.pendingSubmittedSeconds,
-    )
-    const rankingSeconds = Math.max(
-      finalElapsedSeconds - alreadyQueuedSeconds,
-      0,
-    )
-
-    setSession({
-      sessionDate: getTodayKey(),
-      accumulatedSeconds: finalElapsedSeconds,
-      submittedSeconds: session.submittedSeconds,
-      pendingSubmittedSeconds: session.pendingSubmittedSeconds,
-      isSlacking: false,
-      startedAt: null,
-      isOffWork: true,
-      finishedAmount: finalEarnedAmount,
-    })
-
-    submitRankingDelta(rankingSeconds, finalElapsedSeconds)
-  }
-
-  const getFallbackTopPercent = () => {
-    if (visibleRankings.length === 0 || elapsedSeconds <= 0) {
-      return 100
-    }
-
-    const higherCount = visibleRankings.filter(
-      (entry) =>
-        entry.nickname !== nickname && entry.elapsedSeconds > elapsedSeconds,
-    ).length
-    const estimatedRank = higherCount + 1
-    const totalCount = Math.max(visibleRankings.length, estimatedRank, 1)
-
-    return Math.max(
-      1,
-      Math.min(100, Math.ceil((estimatedRank / totalCount) * 100)),
-    )
-  }
-
-  const createShareText = (topPercent: number) => [
-    `나는 오늘 ${formatShareDuration(elapsedSeconds)} 월급 루팡 성공`,
-    `현재 루팡리그 상위 ${topPercent}%`,
-    `회사로부터 ${formatWon(earnedAmount)}을 훔쳤습니다.`,
-    '당신의 순위는?',
-    `너도 해보기 👉 ${SHARE_URL}`,
-  ].join('\n')
 
   const shareSlackingRecord = async () => {
-    if (elapsedSeconds <= 0) {
-      setShareStatus('error')
-      setShareMessage('공유할 루팡 기록이 아직 없습니다.')
-      return
+    if (elapsedSeconds <= 0) return
+    setShareStatus('sharing'); setShareMessage('')
+    let percent: number | null = null
+    if (isFirebaseConfigured && uid) {
+      try { percent = await getRankingTopPercent(elapsedSeconds, uid, todayKey) } catch { /* Share the record without an unverified percentile. */ }
     }
-
-    setShareStatus('sharing')
-    setShareMessage('')
-
+    const text = [
+      `나는 오늘 ${formatShareDuration(elapsedSeconds)} 월급 루팡 성공`,
+      ...(percent !== null ? [`현재 루팡리그 상위 ${percent}% (시간 기준)`] : []),
+      `회사로부터 ${formatWon(earnedAmount)}을 훔쳤습니다.`,
+      '당신의 순위는?', `너도 해보기 👉 ${SHARE_URL}`,
+    ].join('\n')
+    setShareText(text)
     try {
-      let topPercent = getFallbackTopPercent()
-
-      if (isFirebaseConfigured) {
+      if (navigator.share) {
         try {
-          topPercent =
-            (await getRankingTopPercent(elapsedSeconds)) ?? topPercent
-        } catch {
-          topPercent = getFallbackTopPercent()
-        }
-      }
-
-      const nextShareText = createShareText(topPercent)
-      setShareText(nextShareText)
-
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        try {
-          await navigator.share({
-            title: '월루미터 - 온라인 월급 루팡 시뮬레이터',
-            text: nextShareText,
-          })
-          setShareStatus('shared')
-          setShareMessage('공유창을 열었습니다.')
-          return
+          await navigator.share({ title: '월루미터', text })
+          setShareStatus('shared'); setShareMessage('기록을 공유했습니다.'); return
         } catch (error) {
-          if (error instanceof DOMException && error.name === 'AbortError') {
-            setShareStatus('idle')
-            return
-          }
+          if (error instanceof DOMException && error.name === 'AbortError') { setShareStatus('idle'); return }
         }
       }
-
-      await copyTextToClipboard(nextShareText)
-      setShareStatus('copied')
-      setShareMessage('공유 문구를 클립보드에 복사했습니다.')
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        setShareStatus('idle')
-        return
-      }
-
-      setShareStatus('error')
-      setShareMessage('아래 공유 문구를 직접 복사해 주세요.')
-    }
+      await copyTextToClipboard(text)
+      setShareStatus('copied'); setShareMessage('공유 문구를 복사했습니다.')
+    } catch { setShareStatus('error'); setShareMessage('아래 문구를 직접 복사해 주세요.') }
   }
 
   const downloadShareCard = () => {
-    if (elapsedSeconds <= 0) {
-      setShareCardMessage('공유 카드로 만들 루팡 기록이 아직 없습니다.')
-      return
-    }
-
+    if (elapsedSeconds <= 0) return
     const canvas = document.createElement('canvas')
-    canvas.width = 1200
-    canvas.height = 630
+    canvas.width = 1200; canvas.height = 630
     const context = canvas.getContext('2d')
-
-    if (!context) {
-      setShareCardMessage('공유 카드를 만들지 못했습니다.')
-      return
+    if (!context) { setShareCardMessage('이미지를 만들지 못했습니다.'); return }
+    context.fillStyle = '#f7f2ea'; context.fillRect(0, 0, 1200, 630)
+    context.fillStyle = '#24221f'; context.fillRect(64, 64, 1072, 502)
+    context.fillStyle = '#fff8ef'; context.fillRect(92, 92, 1016, 446)
+    const line = (text: string, y: number, size: number, color: string) => {
+      context.fillStyle = color
+      while (size > 20) {
+        context.font = `700 ${size}px system-ui, sans-serif`
+        if (context.measureText(text).width <= 916) break
+        size -= 2
+      }
+      context.fillText(text, 142, y)
     }
-
-    context.fillStyle = '#f7f2ea'
-    context.fillRect(0, 0, canvas.width, canvas.height)
-    context.fillStyle = '#24221f'
-    context.fillRect(64, 64, 1072, 502)
-    context.fillStyle = '#fff8ef'
-    context.fillRect(92, 92, 1016, 446)
-    context.fillStyle = '#8b5e3c'
-    context.font = '700 36px system-ui, sans-serif'
-    context.fillText('월루미터 루팡 기록', 142, 170)
-    context.fillStyle = '#24221f'
-    context.font = '900 72px system-ui, sans-serif'
-    context.fillText(formatWon(earnedAmount), 142, 280)
-    context.font = '700 40px system-ui, sans-serif'
-    context.fillText(`${formatShareDuration(elapsedSeconds)} 월급 루팡 성공`, 142, 356)
-    context.fillStyle = '#5e564e'
-    context.font = '600 30px system-ui, sans-serif'
-    context.fillText(`닉네임: ${nickname}`, 142, 424)
-    context.fillText('너도 해보기: slacker-nu.vercel.app', 142, 482)
-
+    line('월루미터 루팡 기록', 170, 36, '#8b5e3c')
+    line(formatWon(earnedAmount), 280, 72, '#24221f')
+    line(`${formatShareDuration(elapsedSeconds)} 월급 루팡 성공`, 356, 40, '#24221f')
+    line(`닉네임: ${nickname}`, 424, 30, '#5e564e')
+    line('너도 해보기: slacker-nu.vercel.app', 482, 30, '#5e564e')
     const link = document.createElement('a')
-    link.href = canvas.toDataURL('image/png')
-    link.download = `wolumeter-${getTodayKey()}.png`
-    link.click()
+    link.href = canvas.toDataURL('image/png'); link.download = `wolumeter-${getTodayKey()}.png`; link.click()
     setShareCardMessage('공유 카드 이미지를 저장했습니다.')
   }
 
   return (
     <main className="min-h-dvh bg-[#f7f2ea] text-[#24221f]">
       <section className="mx-auto flex min-h-dvh w-full max-w-7xl flex-col px-5 py-6 sm:px-8 lg:px-10">
-        <header className="flex items-center justify-between border-b border-[#ded5c8] pb-4">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ded5c8] pb-4">
           <div>
-            <p className="text-sm font-semibold text-[#8b5e3c]">Slacker</p>
+            <p className="text-sm font-semibold text-[#8b5e3c]">월루미터 · Slacker</p>
             <div className="relative mt-1 flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-normal sm:text-3xl">
                 월급 루팡 계산기
@@ -997,6 +416,17 @@ function App() {
           </div>
         </header>
 
+        <nav aria-label="주요 메뉴" className="site-nav">
+          <a href="/" aria-current="page">계산기</a>
+          <a href="#my-records">내 기록</a>
+          <a href="#price-time">가격 → 시간</a>
+          <a href="/guide.html">계산 공식</a>
+          <a href="/examples.html">금액 비교</a>
+          <a href="/ranking.html">랭킹 기준</a>
+          <a href="/faq.html">FAQ</a>
+          <a href="/about.html">소개</a>
+        </nav>
+
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#ded5c8] bg-white px-4 py-3 text-sm font-bold shadow-sm">
           <span className="text-[#5e564e]">지금 루팡 중</span>
           <span className="text-[#8b5e3c]">
@@ -1009,9 +439,10 @@ function App() {
           ) : null}
         </div>
 
-        <div className="grid flex-1 gap-6 py-6 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
-          <aside className="h-fit rounded-lg border border-[#ded5c8] bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-bold">근무 조건</h2>
+        <div className="app-grid grid grid-cols-[minmax(0,1fr)] gap-6 py-6 lg:grid-cols-[260px_minmax(0,1fr)_260px]">
+          <aside className="settings-panel order-2 min-w-0 h-fit rounded-lg border border-[#ded5c8] bg-white p-5 shadow-sm lg:order-1">
+            <details open={settingsOpen} onToggle={event => setSettingsOpen(event.currentTarget.open)}>
+            <summary className="cursor-pointer text-lg font-bold">근무 조건</summary>
             <div className="mt-5 space-y-4">
               <div>
                 <span className="text-sm font-semibold text-[#5e564e]">
@@ -1019,6 +450,7 @@ function App() {
                 </span>
                 <div className="mt-2 flex overflow-hidden rounded-md border border-[#d8cdbc] bg-[#fbfaf7] focus-within:border-[#8b5e3c]">
                   <input
+                    aria-label="닉네임"
                     className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-semibold outline-none"
                     disabled={session.isSlacking}
                     maxLength={MAX_NICKNAME_LENGTH}
@@ -1061,6 +493,9 @@ function App() {
                     className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none"
                     inputMode="numeric"
                     min="0"
+                    max="1000000000"
+                    disabled={session.isSlacking}
+                    aria-invalid={Boolean(settingsMessage)}
                     type="number"
                     value={settings.salary}
                     onChange={(event) => updateSetting('salary', event.target.value)}
@@ -1077,7 +512,11 @@ function App() {
                   <input
                     className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none"
                     inputMode="numeric"
-                    min="0"
+                    min="1"
+                    max="31"
+                    step="1"
+                    disabled={session.isSlacking}
+                    aria-invalid={Boolean(settingsMessage)}
                     type="number"
                     value={settings.workDays}
                     onChange={(event) => updateSetting('workDays', event.target.value)}
@@ -1094,8 +533,11 @@ function App() {
                   <input
                     className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none"
                     inputMode="decimal"
-                    min="0"
-                    step="0.5"
+                    min="0.01"
+                    max="24"
+                    disabled={session.isSlacking}
+                    aria-invalid={Boolean(settingsMessage)}
+                    step="0.01"
                     type="number"
                     value={settings.workHours}
                     onChange={(event) => updateSetting('workHours', event.target.value)}
@@ -1110,9 +552,10 @@ function App() {
               {numberFormatter.format(settings.workHours)}시간 기준으로 초당 수익을
               계산합니다.
             </div>
+            </details>
           </aside>
 
-          <section className="flex flex-col rounded-lg border border-[#ded5c8] bg-white shadow-sm">
+          <section className="timer-panel order-1 min-w-0 flex flex-col rounded-lg border border-[#ded5c8] bg-white shadow-sm lg:order-2">
             <div className="border-b border-[#ded5c8] p-5 sm:p-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -1123,28 +566,35 @@ function App() {
                         ? '루팡 중'
                         : '업무 복귀'}
                   </p>
-                  <h2 className="mt-2 text-4xl font-black tracking-normal sm:text-5xl">
-                    {currencyFormatter.format(earnedAmount)}
+                  <h2 className="result-amount mt-2 text-4xl font-black tracking-normal">
+                    {currencyFormatter.format(displayedAmount)}
                   </h2>
-                  {session.isOffWork && session.finishedAmount !== null ? (
+                  <p className="mt-2 text-xs leading-5 text-[#7d746a]">입력 조건으로 계산한 재미용 환산액이며, 실제 현금은 지급되지 않습니다.</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#5e564e]">
+                    <span>월급 {formatWon(settings.salary)} · {settings.workDays}일 · {settings.workHours}시간</span>
+                    <button type="button" disabled={session.isSlacking} className="min-h-8 underline underline-offset-2 disabled:opacity-50" onClick={() => { setSettingsOpen(true); document.querySelector('.settings-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>조건 변경</button>
+                  </div>
+                  {session.isOffWork ? (
                     <p className="mt-3 rounded-md bg-[#f2ebe1] px-3 py-2 text-sm font-bold text-[#6e6259]">
                       오늘 하루 월급 루팡으로{' '}
-                      {currencyFormatter.format(session.finishedAmount)} 벌었습니다.
+                      {currencyFormatter.format(earnedAmount)} 벌었습니다.
                     </p>
                   ) : null}
                 </div>
                 <div className="rounded-md bg-[#24221f] px-4 py-3 text-white">
                   <p className="text-xs font-medium text-[#d8cdbc]">누적 시간</p>
                   <p className="font-mono text-2xl font-bold">
-                    {formatDuration(elapsedSeconds)}
+                    {formatDuration(displayedSeconds)}
                   </p>
+                  {session.displayOffsetSeconds > 0 ? <p className="mt-1 text-xs">오늘 총 {formatDuration(elapsedSeconds)}</p> : null}
                 </div>
               </div>
             </div>
 
-            <div className="grid flex-1 gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_220px]">
+            <div className="timer-body grid min-w-0 gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_200px]">
               <div
-                className={`desk-scene ${session.isOffWork ? 'off-work' : ''}`}
+                className={`desk-scene min-w-0 order-2 xl:order-1 ${session.isOffWork ? 'off-work' : ''}`}
+                role="img"
                 aria-label={
                   session.isOffWork
                     ? '사용자가 떠나고 노트북과 책상만 남아있는 그림'
@@ -1176,16 +626,17 @@ function App() {
                 <div className="desk"></div>
               </div>
 
-              <div className="flex flex-col justify-between gap-4">
+              <div className="order-1 min-w-0 flex flex-col justify-between gap-4 xl:order-2">
                 <div className="space-y-3">
                   <button
                     className="w-full rounded-md bg-[#8b5e3c] px-4 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#744c2e] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#c2b2a2]"
-                    disabled={session.isSlacking || hasReachedDailyLimit}
+                    disabled={session.isSlacking || hasReachedDailyLimit || Boolean(settingsMessage) || isPreparing}
                     type="button"
                     onClick={startSlacking}
                   >
-                    루팡 시작
+                    {isPreparing ? '기록 확인 중' : '루팡 시작'}
                   </button>
+                  {settingsMessage ? <div role="alert" className="rounded-md bg-[#f2ebe1] px-3 py-2 text-sm text-[#b95738]">{settingsMessage} <button className="underline" onClick={() => { setSettingsOpen(true); document.querySelector('.settings-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>근무 조건 수정</button></div> : null}
                   {hasReachedDailyLimit ? (
                     <p className="rounded-md bg-[#f2ebe1] px-3 py-2 text-center text-xs font-bold text-[#8b5e3c]">
                       오늘 루팡 가능 시간 14시간을 모두 사용했습니다.
@@ -1211,7 +662,7 @@ function App() {
                 <div>
                   <button
                     className="w-full rounded-md border border-[#8b5e3c] bg-[#fbfaf7] px-4 py-3 text-sm font-bold text-[#8b5e3c] transition hover:bg-[#f2ebe1] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#d8cdbc] disabled:text-[#aaa095]"
-                    disabled={elapsedSeconds <= 0 || shareStatus === 'sharing'}
+                    disabled={elapsedSeconds <= 0 || shareStatus === 'sharing' || Boolean(settingsMessage)}
                     type="button"
                     onClick={() => void shareSlackingRecord()}
                   >
@@ -1232,6 +683,7 @@ function App() {
                   ) : null}
                   {shareText ? (
                     <textarea
+                      aria-label="공유 문구"
                       className="mt-3 h-32 w-full resize-none rounded-md border border-[#d8cdbc] bg-[#fbfaf7] p-3 text-xs font-semibold leading-5 text-[#5e564e] outline-none"
                       readOnly
                       value={shareText}
@@ -1239,7 +691,7 @@ function App() {
                   ) : null}
                   <button
                     className="mt-3 w-full rounded-md border border-[#d8cdbc] px-4 py-3 text-sm font-semibold text-[#6e6259] transition hover:bg-[#f2ebe1] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-[#aaa095]"
-                    disabled={elapsedSeconds <= 0}
+                    disabled={elapsedSeconds <= 0 || Boolean(settingsMessage)}
                     type="button"
                     onClick={downloadShareCard}
                   >
@@ -1257,19 +709,20 @@ function App() {
                   type="button"
                   onClick={resetSession}
                 >
-                  기록 초기화
+                  화면 기록 초기화
                 </button>
+                <p className="text-xs leading-5 text-[#7d746a]">화면 기록을 초기화해도 오늘의 랭킹 기록과 14시간 한도는 유지됩니다.</p>
               </div>
             </div>
           </section>
 
-          <aside className="h-fit rounded-lg border border-[#ded5c8] bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
+          <aside className="order-3 min-w-0 h-fit rounded-lg border border-[#ded5c8] bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-[#8b5e3c]">Top 5</p>
                 <h2 className="text-lg font-bold">실시간 랭킹</h2>
               </div>
-              <div className="grid grid-cols-2 rounded-md border border-[#d8cdbc] bg-[#fbfaf7] p-1">
+              <div role="group" aria-label="랭킹 표시 기준" className="grid shrink-0 grid-cols-2 rounded-md border border-[#d8cdbc] bg-[#fbfaf7] p-1">
                 <button
                   className={`rounded px-3 py-2 text-sm font-bold transition ${
                     rankingSort === 'amount'
@@ -1277,9 +730,10 @@ function App() {
                       : 'text-[#6e6259] hover:bg-[#f2ebe1]'
                   }`}
                   type="button"
+                  aria-pressed={rankingSort === 'amount'}
                   onClick={() => setRankingSort('amount')}
                 >
-                  금액
+                  환산액
                 </button>
                 <button
                   className={`rounded px-3 py-2 text-sm font-bold transition ${
@@ -1288,6 +742,7 @@ function App() {
                       : 'text-[#6e6259] hover:bg-[#f2ebe1]'
                   }`}
                   type="button"
+                  aria-pressed={rankingSort === 'time'}
                   onClick={() => setRankingSort('time')}
                 >
                   시간
@@ -1295,7 +750,9 @@ function App() {
               </div>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <p className="mt-3 text-xs leading-5 text-[#7d746a]">한국 시간 매일 0시 갱신 · 시간순 Top 5{rankingSort === 'amount' ? ' · 환산액은 내 시급 기준입니다.' : ''}</p>
+
+            <div className="mt-5 space-y-3" aria-live="polite">
               {rankingStatus === 'loading' ? (
                 <div className="rounded-md bg-[#f2ebe1] p-4 text-sm font-semibold text-[#6e6259]">
                   랭킹을 불러오는 중입니다.
@@ -1326,17 +783,18 @@ function App() {
                 </div>
               ) : null}
 
+              {rankingSaveStatus === 'error' ? <p role="status" className="text-sm text-[#b95738]">저장하지 못한 기록은 이 브라우저에 보관됩니다. 자동으로 재시도하고 있습니다.</p> : null}
+
               {pendingRankings.length > 0 ? (
                 <div className="rounded-md bg-[#f2ebe1] p-4 text-sm font-semibold text-[#6e6259]">
                   <p>
-                    저장 대기 중인 기록 {pendingRankings.length}건을 랭킹에 먼저
-                    반영했습니다.
+                    저장 대기 중인 일별 기록 {pendingRankings.length}건이 있습니다. 연결되면 자동으로 다시 저장합니다.
                   </p>
                   <button
                     className="mt-3 rounded-md border border-[#8b5e3c] px-3 py-2 text-xs font-bold text-[#8b5e3c] transition hover:bg-white disabled:cursor-not-allowed disabled:text-[#aaa095]"
                     disabled={rankingSaveStatus === 'saving'}
                     type="button"
-                    onClick={() => void flushPendingRankings(pendingRankings)}
+                    onClick={retry}
                   >
                     지금 다시 저장
                   </button>
@@ -1370,12 +828,6 @@ function App() {
             </div>
           </aside>
 
-          <AdBanner
-            className="lg:col-span-3"
-            format="horizontal"
-            slot={import.meta.env.VITE_ADSENSE_RANKING_SLOT}
-          />
-
           <ContentSections
             dailyLimitAmount={dailyLimitAmount}
             earnedAmount={earnedAmount}
@@ -1384,62 +836,12 @@ function App() {
             secondlyRate={secondlyRate}
           />
         </div>
-        <footer className="border-t border-[#ded5c8] py-5 text-center text-xs font-semibold leading-5 text-[#7d746a]">
-          <p>재미로 보는 월급 루팡 계산기입니다.</p>
-          <p>
-            피드백은 언제든 환영합니다:{' '}
-            <a
-              className="text-[#8b5e3c] underline-offset-2 hover:underline"
-              href="mailto:dev.garam918@gmail.com"
-            >
-              dev.garam918@gmail.com
-            </a>
-          </p>
-          <p className="mt-2">
-            <a
-              className="text-[#8b5e3c] underline-offset-2 hover:underline"
-              href="/guide.html"
-            >
-              계산 공식
-            </a>
-            <span className="mx-2 text-[#c2b2a2]">|</span>
-            <a
-              className="text-[#8b5e3c] underline-offset-2 hover:underline"
-              href="/examples.html"
-            >
-              예시
-            </a>
-            <span className="mx-2 text-[#c2b2a2]">|</span>
-            <a
-              className="text-[#8b5e3c] underline-offset-2 hover:underline"
-              href="/ranking.html"
-            >
-              랭킹 기준
-            </a>
-            <span className="mx-2 text-[#c2b2a2]">|</span>
-            <a
-              className="text-[#8b5e3c] underline-offset-2 hover:underline"
-              href="/faq.html"
-            >
-              FAQ
-            </a>
-            <span className="mx-2 text-[#c2b2a2]">|</span>
-            <a
-              className="text-[#8b5e3c] underline-offset-2 hover:underline"
-              href="/about.html"
-            >
-              About
-            </a>
-          </p>
-          <p className="mt-2">
-            <a
-              className="text-[#8b5e3c] underline-offset-2 hover:underline"
-              href="/privacy.html"
-            >
-              개인정보처리방침
-            </a>
-          </p>
-        </footer>
+        <HistoryDashboard records={historyRecords} today={getTodayKey(now)} nickname={nickname} />
+        <PriceCalculator settings={settings} elapsedSeconds={elapsedSeconds} onEditSettings={() => {
+          setSettingsOpen(true)
+          document.querySelector('.settings-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }} />
+        <PrivacyTools uid={uid} />
       </section>
     </main>
   )
