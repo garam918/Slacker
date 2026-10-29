@@ -3,111 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>월급별 루팡 금액 예시 - 월루미터</title>
-    <meta
-      name="description"
-      content="월급 250만 원, 300만 원, 500만 원 기준으로 쉬는 시간 동안 누적되는 월급 루팡 금액 예시를 확인해보세요."
-    />
+    <title>월급과 근무 조건별 금액 비교 - 월루미터</title>
+    <meta name="description" content="월급별 5분·10분·30분·1시간 환산액과 근무일 20·21·22일, 하루 근무시간 변화에 따른 차이를 비교합니다." />
+    <link rel="canonical" href="https://slacker-nu.vercel.app/examples.html" />
+    <meta property="og:site_name" content="월루미터" />
+    <meta property="og:title" content="월급과 근무 조건별 금액 비교 - 월루미터" />
+    <meta property="og:description" content="월급별 5분·10분·30분·1시간 환산액과 근무일 20·21·22일, 하루 근무시간 변화에 따른 차이를 비교합니다." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://slacker-nu.vercel.app/examples.html" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <style>
-      body {
-        margin: 0;
-        background: #f7f2ea;
-        color: #24221f;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        line-height: 1.7;
-      }
-
-      main {
-        box-sizing: border-box;
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 48px 20px 64px;
-      }
-
-      a {
-        color: #8b5e3c;
-        font-weight: 700;
-      }
-
-      h1 {
-        margin: 0 0 12px;
-        font-size: clamp(2rem, 5vw, 3rem);
-        line-height: 1.2;
-      }
-
-      p,
-      td,
-      th {
-        color: #5e564e;
-        font-weight: 600;
-      }
-
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        overflow: hidden;
-        border: 1px solid #ded5c8;
-        border-radius: 8px;
-        background: #fff;
-      }
-
-      th,
-      td {
-        border-bottom: 1px solid #eadfce;
-        padding: 14px;
-        text-align: left;
-      }
-
-      th {
-        color: #24221f;
-        background: #f2ebe1;
-      }
-    </style>
+    <link rel="stylesheet" href="/content.css" />
   </head>
   <body>
-    <main>
-      <p><a href="/">월루미터로 돌아가기</a></p>
-      <h1>월급별 루팡 금액 예시</h1>
-      <p>
-        아래 예시는 월 21일, 하루 8시간 근무 기준입니다. 실제 급여 정산이 아닌
-        재미용 환산 결과입니다.
-      </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>월급</th>
-            <th>5분</th>
-            <th>10분</th>
-            <th>30분</th>
-            <th>1시간</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>250만 원</td>
-            <td>약 1,240원</td>
-            <td>약 2,480원</td>
-            <td>약 7,440원</td>
-            <td>약 14,881원</td>
-          </tr>
-          <tr>
-            <td>300만 원</td>
-            <td>약 1,488원</td>
-            <td>약 2,976원</td>
-            <td>약 8,929원</td>
-            <td>약 17,857원</td>
-          </tr>
-          <tr>
-            <td>500만 원</td>
-            <td>약 2,480원</td>
-            <td>약 4,960원</td>
-            <td>약 14,881원</td>
-            <td>약 29,762원</td>
-          </tr>
-        </tbody>
-      </table>
+    <main class="reading-page">
+      <nav class="site-nav" aria-label="주요 메뉴">
+        <a href="/">계산기</a><a href="/guide.html">계산 공식</a>
+        <a href="/examples.html" aria-current="page">금액 비교</a><a href="/ranking.html">랭킹 기준</a>
+        <a href="/faq.html">FAQ</a><a href="/about.html">소개</a>
+        <a href="/privacy.html">개인정보처리방침</a>
+      </nav>
+      <header class="article-header">
+        <p class="brand">월루미터</p>
+        <h1>월급과 근무 조건별 금액 비교</h1>
+        <p class="lead">월급만 바꾸면 금액이 얼마나 달라질까요? 같은 월급이라도 근무일과 하루 근무시간이 달라지면 결과가 달라집니다. 각 표는 한 가지 조건만 바꿔 차이를 비교합니다.</p>
+        <p class="article-meta">최종 수정 <time datetime="2026-10-29">2026년 10월 29일</time></p>
+      </header>
+      <article>
+        <nav class="page-toc" aria-label="이 페이지 목차"><a href="#salary">월급별 비교</a><a href="#days">근무일별 비교</a><a href="#hours">근무시간별 비교</a><a href="#repeat">한 달로 환산</a></nav>
+        <section id="salary"><h2>월급별로 5분, 10분, 30분, 1시간 비교하기</h2>
+        <p>월 21일, 하루 8시간을 공통 조건으로 두었습니다. 모든 금액은 소수점 계산 후 원 단위로 반올림했습니다. 표는 좁은 화면에서 좌우로 이동할 수 있습니다.</p>
+        <div class="table-scroll" role="region" aria-label="월급별 시간당 환산액 비교표" tabindex="0"><table><caption>월 21일 · 하루 8시간 기준</caption><thead><tr><th scope="col">월급</th><th scope="col">5분</th><th scope="col">10분</th><th scope="col">30분</th><th scope="col">1시간</th></tr></thead><tbody>
+        <tr><th scope="row">250만 원</th><td>1,240원</td><td>2,480원</td><td>7,440원</td><td>14,881원</td></tr>
+        <tr><th scope="row">300만 원</th><td>1,488원</td><td>2,976원</td><td>8,929원</td><td>17,857원</td></tr>
+        <tr><th scope="row">500만 원</th><td>2,480원</td><td>4,960원</td><td>14,881원</td><td>29,762원</td></tr>
+        </tbody></table></div>
+        <p>같은 시간을 비교하면 입력 월급이 커지는 비율만큼 환산액도 커집니다. 예를 들어 250만 원에서 500만 원으로 바꾸면 계산 비율은 두 배가 됩니다. 단, 표시된 정수 금액끼리 비교하면 반올림 때문에 1원 정도 차이가 날 수 있습니다.</p></section>
+        <section id="days"><h2>월급이 같아도 근무일이 다르면 달라집니다</h2>
+        <p>이번에는 월급을 300만 원, 하루 근무시간을 8시간으로 고정했습니다. 월급을 나누는 시간이 길수록 초당 금액은 작아집니다.</p>
+        <div class="table-scroll" role="region" aria-label="월 근무일별 환산액 비교표" tabindex="0"><table><caption>월급 300만 원 · 하루 8시간 기준</caption><thead><tr><th scope="col">월 근무일</th><th scope="col">월 근무시간</th><th scope="col">10분</th><th scope="col">1시간</th></tr></thead><tbody>
+        <tr><th scope="row">20일</th><td>160시간</td><td>3,125원</td><td>18,750원</td></tr>
+        <tr><th scope="row">21일</th><td>168시간</td><td>2,976원</td><td>17,857원</td></tr>
+        <tr><th scope="row">22일</th><td>176시간</td><td>2,841원</td><td>17,045원</td></tr>
+        </tbody></table></div>
+        <p>20일 조건의 10분은 3,125원, 22일 조건의 10분은 2,841원입니다. 이는 실제로 어느 달에 돈을 더 받는다는 의미가 아니라, 같은 월급을 나누는 분모를 다르게 설정한 결과입니다.</p></section>
+        <section id="hours"><h2>하루 근무시간만 바꿔 비교하기</h2>
+        <p>월급 300만 원, 월 근무일 21일을 고정하고 하루 근무시간만 바꿨습니다. 단시간 근무 조건을 살펴보거나, 입력값 차이의 영향을 확인할 때 사용할 수 있는 예시입니다.</p>
+        <div class="table-scroll" role="region" aria-label="하루 근무시간별 환산액 비교표" tabindex="0"><table><caption>월급 300만 원 · 월 21일 기준</caption><thead><tr><th scope="col">하루 근무시간</th><th scope="col">월 근무시간</th><th scope="col">10분</th><th scope="col">1시간</th></tr></thead><tbody>
+        <tr><th scope="row">6시간</th><td>126시간</td><td>3,968원</td><td>23,810원</td></tr>
+        <tr><th scope="row">8시간</th><td>168시간</td><td>2,976원</td><td>17,857원</td></tr>
+        <tr><th scope="row">10시간</th><td>210시간</td><td>2,381원</td><td>14,286원</td></tr>
+        </tbody></table></div>
+        <p>이 표의 조건은 계산을 위한 가정입니다. 근무 형태의 유불리나 적정 근로시간을 판단하는 자료는 아닙니다. 자신의 숫자를 비교할 때는 <a href="/guide.html#inputs">입력 기준</a>부터 맞추세요.</p></section>
+        <section id="repeat"><h2>매일 같은 시간을 기록한다면?</h2>
+        <p>월급 300만 원, 월 21일, 하루 8시간 기준으로 매일 10분을 21일간 기록한다고 가정하면 총 210분, 즉 3시간 30분입니다. 전체 시간으로 다시 계산한 환산액은 <strong>62,500원</strong>입니다.</p>
+        <p>이는 가정한 시간을 한 달로 늘려 본 예상치이며 추가 급여가 아닙니다. 실제로 이 브라우저에 쌓인 일별 기록은 <a href="/#my-records">개인 달력과 주간·월간 리포트</a>에서 별도로 확인할 수 있습니다. 실제 이력과 이 예측 예시는 구분됩니다.</p>
+        <p><a href="/">내 조건으로 계산하기</a> · <a href="/guide.html#rounding">표의 반올림 원칙 확인하기</a></p></section>
+      </article>
+      <footer class="article-footer">
+        <p><a href="/">계산기로 돌아가기</a> · <a href="/guide.html">계산 공식</a> · <a href="/examples.html">금액 비교</a> · <a href="/faq.html">FAQ</a></p>
+        <p>운영·개인정보 문의: <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a></p>
+        <p><a href="/about.html">서비스 소개</a> · <a href="/privacy.html">개인정보처리방침</a></p>
+      </footer>
     </main>
   </body>
 </html>
