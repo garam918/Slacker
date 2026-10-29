@@ -2,36 +2,43 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://slacker-nu.vercel.app/</loc>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://slacker-nu.vercel.app/privacy.html</loc>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://slacker-nu.vercel.app/guide.html</loc>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://slacker-nu.vercel.app/examples.html</loc>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://slacker-nu.vercel.app/ranking.html</loc>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://slacker-nu.vercel.app/faq.html</loc>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://slacker-nu.vercel.app/about.html</loc>
+    <lastmod>2026-10-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
