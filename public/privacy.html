@@ -4,165 +4,81 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>개인정보처리방침 - 월루미터</title>
-    <meta
-      name="description"
-      content="월루미터에서 수집하고 사용하는 정보와 보관 방식에 대한 개인정보처리방침입니다."
-    />
-    <style>
-      body {
-        margin: 0;
-        background: #f7f2ea;
-        color: #24221f;
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        line-height: 1.7;
-      }
-
-      main {
-        box-sizing: border-box;
-        max-width: 840px;
-        margin: 0 auto;
-        padding: 48px 20px 64px;
-      }
-
-      a {
-        color: #8b5e3c;
-        font-weight: 700;
-      }
-
-      h1 {
-        margin: 0 0 8px;
-        font-size: clamp(2rem, 5vw, 3rem);
-        line-height: 1.2;
-      }
-
-      h2 {
-        margin: 36px 0 12px;
-        font-size: 1.25rem;
-      }
-
-      p,
-      li {
-        color: #5e564e;
-        font-size: 1rem;
-      }
-
-      section {
-        border-top: 1px solid #ded5c8;
-        margin-top: 28px;
-        padding-top: 8px;
-      }
-
-      .panel {
-        border: 1px solid #ded5c8;
-        border-radius: 8px;
-        background: #fff;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgb(36 34 31 / 0.08);
-      }
-
-      .muted {
-        color: #7d746a;
-        font-size: 0.9rem;
-      }
-    </style>
+    <meta name="description" content="월루미터의 브라우저 저장 정보, 익명 인증, 공개 랭킹, 서버 기록 보관과 삭제 요청, 광고 쿠키 및 이용자의 선택을 안내합니다." />
+    <link rel="canonical" href="https://slacker-nu.vercel.app/privacy.html" />
+    <meta property="og:site_name" content="월루미터" />
+    <meta property="og:title" content="개인정보처리방침 - 월루미터" />
+    <meta property="og:description" content="월루미터의 브라우저 저장 정보, 익명 인증, 공개 랭킹, 서버 기록 보관과 삭제 요청, 광고 쿠키 및 이용자의 선택을 안내합니다." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://slacker-nu.vercel.app/privacy.html" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/content.css" />
   </head>
   <body>
-    <main>
-      <p><a href="/">월루미터로 돌아가기</a></p>
-      <h1>개인정보처리방침</h1>
-      <p class="muted">시행일: 2026년 5월 27일</p>
-
-      <div class="panel">
-        <p>
-          월루미터는 재미로 보는 온라인 월급 루팡 시뮬레이터입니다. 서비스는
-          계산기 동작, 랭킹 표시, 현재 루팡 중인 인원 표시, 광고 표시를 위해
-          아래 정보를 사용합니다.
-        </p>
-      </div>
-
-      <section>
-        <h2>1. 수집하거나 저장하는 정보</h2>
-        <ul>
-          <li>
-            브라우저에만 저장되는 정보: 월급, 월 근무일, 하루 근무시간, 타이머
-            기록, 퇴근 결과, 닉네임, 저장 대기 중인 랭킹 기록
-          </li>
-          <li>
-            Firebase에 저장되는 랭킹 정보: Firebase 익명 인증 UID, 닉네임,
-            누적 루팡 시간, 수정 시각
-          </li>
-          <li>
-            Firebase에 저장되는 현재 활동 정보: Firebase 익명 인증 UID, 닉네임,
-            활동 만료 시각, 수정 시각
-          </li>
-          <li>
-            광고 관련 정보: Google AdSense가 광고 제공, 부정 이용 방지,
-            통계 처리를 위해 쿠키, 광고 식별자, 접속 환경 정보를 사용할 수
-            있습니다.
-          </li>
-        </ul>
-        <p>
-          월급, 월 근무일, 하루 근무시간은 사용자의 브라우저 localStorage에만
-          저장되며 Firebase Firestore에는 저장하지 않습니다.
-        </p>
-      </section>
-
-      <section>
-        <h2>2. 정보의 이용 목적</h2>
-        <ul>
-          <li>입력한 근무 조건을 바탕으로 루팡 시간과 금액을 계산하기 위해 사용합니다.</li>
-          <li>닉네임과 누적 루팡 시간을 이용해 실시간 랭킹을 표시합니다.</li>
-          <li>활동 상태를 이용해 현재 루팡 중인 인원 수를 표시합니다.</li>
-          <li>광고를 표시하고 광고 품질을 관리하기 위해 Google AdSense를 사용합니다.</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>3. 보관 위치와 기간</h2>
-        <ul>
-          <li>
-            브라우저 localStorage 정보는 사용자가 브라우저 데이터를 삭제하거나
-            사이트에서 기록 초기화를 실행할 때까지 보관될 수 있습니다.
-          </li>
-          <li>
-            Firebase 랭킹 정보는 랭킹 제공을 위해 보관되며, 운영상 필요하거나
-            삭제 요청이 있는 경우 삭제될 수 있습니다.
-          </li>
-          <li>
-            현재 활동 정보는 짧은 시간 동안 현재 루팡 중인 인원을 계산하기 위해
-            사용되며, 활동 만료 시각이 지나면 집계에서 제외됩니다.
-          </li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>4. 제3자 서비스</h2>
-        <p>
-          월루미터는 Firebase Authentication, Cloud Firestore, Google AdSense,
-          Vercel을 사용합니다. 각 서비스 제공자는 서비스 운영, 보안, 호스팅,
-          광고 제공을 위해 필요한 정보를 처리할 수 있습니다.
-        </p>
-      </section>
-
-      <section>
-        <h2>5. 이용자의 선택</h2>
-        <ul>
-          <li>브라우저 설정에서 쿠키와 사이트 데이터를 삭제할 수 있습니다.</li>
-          <li>사이트의 기록 초기화 버튼으로 로컬 타이머 기록을 초기화할 수 있습니다.</li>
-          <li>광고 개인 최적화 설정은 Google 광고 설정에서 변경할 수 있습니다.</li>
-        </ul>
-      </section>
-
-      <section>
-        <h2>6. 문의</h2>
-        <p>
-          개인정보처리방침 또는 서비스 이용과 관련한 문의는
-          <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a>으로
-          보내주세요.
-        </p>
-      </section>
+    <main class="reading-page">
+      <nav class="site-nav" aria-label="주요 메뉴">
+        <a href="/">계산기</a><a href="/guide.html">계산 공식</a>
+        <a href="/examples.html">금액 비교</a><a href="/ranking.html">랭킹 기준</a>
+        <a href="/faq.html">FAQ</a><a href="/about.html">소개</a>
+        <a href="/privacy.html" aria-current="page">개인정보처리방침</a>
+      </nav>
+      <header class="article-header">
+        <p class="brand">월루미터</p>
+        <h1>개인정보처리방침</h1>
+        <p class="lead">월루미터는 월급과 근무 조건을 브라우저에서 계산합니다. 공개 랭킹과 활동 인원 기능에는 익명 인증과 서버 저장이 사용됩니다. 이 방침은 화면 초기화와 개인정보 삭제의 차이를 포함해 현재 처리 방식을 안내합니다.</p>
+        <p class="article-meta">최종 수정 <time datetime="2026-10-29">2026년 10월 29일</time></p>
+      </header>
+      <article>
+        <p class="note"><strong>시행일: 2026년 10월 29일.</strong> 개인정보 처리 및 문의 담당은 월루미터 운영자이며, 연락처는 <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a>입니다.</p>
+        <nav class="page-toc" aria-label="이 페이지 목차"><a href="#data">처리하는 정보</a><a href="#public">공개·공유 정보</a><a href="#retention">보관과 삭제</a><a href="#providers">외부 서비스</a><a href="#advertising">광고 쿠키</a><a href="#rights">열람·삭제 요청</a></nav>
+        <section id="data"><h2>1. 어떤 정보를 언제 사용하나요?</h2>
+        <dl><dt>월급과 근무 조건</dt><dd>월급, 월 근무일, 하루 근무시간은 계산과 다음 방문 시 설정 복원을 위해 브라우저 웹 저장소(localStorage)에 저장합니다. 현재 서비스는 이 입력값을 Firebase 랭킹 서버에 전송하지 않습니다.</dd>
+        <dt>브라우저 기록</dt><dd>당일 타이머 상태, 시작 시각, 누적 시간, 화면 초기화 기준, 닉네임과 저장 대기 기록을 이 브라우저에 보관합니다. 대기 기록에는 날짜, 누적 시간, 닉네임과 연결된 사용자 식별자가 포함될 수 있습니다. 이전 버전에서 보관된 설정·대기 데이터가 남아 있을 수도 있습니다.</dd>
+        <dt>개인 달력·리포트와 목표 가격</dt><dd>개인 달력과 주간·월간 리포트를 위해 날짜별 누적 시간과 해당 날짜의 월급·근무 조건을 브라우저에 보관합니다. 오늘 금액은 현재 조건으로, 지난 날짜 금액은 보관된 조건으로 계산합니다. 가격을 시간으로 바꾸는 기능의 목표 이름과 가격도 같은 브라우저에 저장합니다. 이 개인 이력과 목표 정보는 Firebase에 전송하지 않으며 다른 기기와 자동 동기화하지 않습니다.</dd>
+        <dt>익명 인증 정보</dt><dd>계산기 페이지를 열면 Firebase 익명 인증을 시도합니다. 같은 브라우저의 기록을 구별하기 위한 식별자(UID)가 생성되며 인증 상태는 Firebase가 관리하는 브라우저 저장소에 보관될 수 있습니다. 일반적인 이용에 이름·이메일·비밀번호 입력을 요구하지 않습니다. 익명 인증이라는 이름이 모든 정보를 식별 불가능하게 만든다는 뜻은 아닙니다.</dd>
+        <dt>서버 랭킹 기록</dt><dd>닉네임을 저장할 때 식별자, 닉네임, 수정 시각이 저장될 수 있습니다. 루팡 기록을 확정하면 날짜별 누적 시간이 추가됩니다. 이 정보는 랭킹 표시, 중복 저장 방지, 오늘 기록 확인과 공유 비율 계산에 사용합니다.</dd>
+        <dt>현재 활동 상태</dt><dd>루팡을 시작하면 식별자, 닉네임, 활동 만료 시각과 수정 시각을 저장합니다. 실행 중 약 30초마다 상태를 갱신하고 중지 시 비활성화를 시도합니다. 현재 루팡 중인 인원 수를 집계하는 데 사용합니다.</dd>
+        <dt>접속·보안 정보</dt><dd>웹페이지 전송과 인증을 위해 Vercel과 Firebase가 IP 주소, 브라우저 정보, 요청 시각 등 접속·보안 정보를 처리할 수 있습니다. 월루미터가 월급을 서버에 저장하지 않는 것과 서비스 제공자의 접속 정보 처리는 구분됩니다.</dd>
+        <dt>이메일 문의</dt><dd>이용자가 문의를 보내면 회신 주소, 문의 내용과 이용자가 첨부한 정보를 운영자가 문의 확인과 응답을 위해 사용합니다. 문의에 월급, 비밀번호, 인증 토큰이나 불필요한 신분증 정보를 보내지 마세요.</dd></dl></section>
+        <section id="public"><h2>2. 다른 사람에게 보이는 정보</h2>
+        <p>랭킹 화면에는 닉네임, 누적 시간 및 이를 방문자의 시급으로 환산한 금액이 표시됩니다. 랭킹 조회에 사용되는 문서 식별자와 수정 시각 등도 조회 데이터에 포함될 수 있습니다. 닉네임에는 실명, 연락처, 회사의 비공개 정보를 넣지 않는 것을 권합니다.</p>
+        <p>공유 문구에는 오늘 시간, 환산액, 집계에 성공한 경우의 시간 기준 상위 비율과 사이트 주소가 들어갑니다. 결과 카드에는 닉네임도 들어갑니다. 주간·월간 리포트 이미지에는 닉네임, 기간, 날짜별 시간 그래프, 누적 시간·환산액과 기록한 일수가 포함됩니다. 이미지 저장·공유는 이용자가 버튼을 누를 때 수행합니다. 서비스가 사용자의 선택 없이 다른 앱에 메시지를 전송하지는 않습니다. 시간과 금액을 함께 공유하면 시급을 추정할 수 있으므로 공개 전에 내용을 확인하세요.</p></section>
+        <section id="retention"><h2>3. 보관 기간과 삭제 방식</h2>
+        <p><strong>자정의 랭킹 전환, 활동 만료, 화면 기록 초기화는 서버 데이터 삭제가 아닙니다.</strong> 현재 서비스 코드에는 서버 랭킹·활동 문서를 일정 기간 후 자동 삭제하는 기능이 없습니다. 이전 날짜 문서와 만료된 활동 문서도 운영자가 정리하거나 삭제 요청을 처리하기 전까지 남을 수 있습니다.</p>
+        <div class="table-scroll" role="region" aria-label="정보 종류별 보관 및 삭제 방식" tabindex="0"><table><caption>현재 서비스의 보관 방식</caption><thead><tr><th scope="col">구분</th><th scope="col">보관·갱신 방식</th><th scope="col">삭제 또는 제거 방법</th></tr></thead><tbody>
+        <tr><th scope="row">월급·근무 조건·닉네임</th><td>다음 방문에도 설정을 불러올 수 있도록 브라우저에 보관</td><td>브라우저의 해당 사이트 데이터 삭제</td></tr>
+        <tr><th scope="row">당일 기록·저장 대기열</th><td>당일 상태를 갱신하고 전송 실패 기록은 저장 완료 전까지 보관</td><td>사이트 데이터 삭제 시 대기 기록도 사라질 수 있음</td></tr>
+        <tr><th scope="row">개인 일별 이력·목표 이름과 가격</th><td>개인 달력·리포트 및 다음 방문의 목표 복원을 위해 브라우저에 보관</td><td>브라우저의 해당 사이트 데이터 삭제. 내려받거나 외부 앱에 공유한 이미지는 별도 관리</td></tr>
+        <tr><th scope="row">브라우저 인증 상태</th><td>Firebase 인증 지속 설정에 따라 관리</td><td>브라우저 사이트 데이터 삭제로 접근 상태가 사라질 수 있음</td></tr>
+        <tr><th scope="row">서버 랭킹·활동 기록</th><td>현재 서비스가 자동 삭제 시점을 보장하지 않음</td><td>운영자에게 해당 식별자의 기록 삭제 요청</td></tr>
+        <tr><th scope="row">인증·호스팅 접속 정보</th><td>각 제공자의 정책과 프로젝트 설정에 따라 처리</td><td>운영자 문의 및 제공자 정책의 절차 확인</td></tr>
+        <tr><th scope="row">문의 이메일</th><td>문의 처리와 후속 응답에 사용, 별도 자동 삭제 기한은 설정하지 않음</td><td>문의 내용 삭제 요청</td></tr>
+        </tbody></table></div>
+        <p>화면 기록 초기화는 진행 중 기록을 멈추고 오늘 총 기록을 유지한 채 표시 구간만 새로 시작합니다. 월급 설정이나 서버 기록을 모두 지우는 버튼이 아닙니다. 반대로 브라우저 사이트 데이터 삭제는 서버 기록을 삭제하지 않으며, 인증 상태를 잃으면 같은 서버 기록에 다시 접근하기 어려울 수 있습니다.</p>
+        <p>서버 기록 삭제 요청은 운영자가 본인 기록인지 확인한 후 처리합니다. 현재 이용자용 즉시 서버 삭제 버튼은 없습니다. 서비스 제공자의 보안 로그 및 백업 제거 시점은 해당 제공자의 정책에 따르며, 문서 삭제와 모든 백업의 즉시 제거를 같은 의미로 안내하지 않습니다.</p></section>
+        <section id="providers"><h2>4. 외부 서비스와 처리 위치</h2>
+        <ul><li><strong>Google Firebase:</strong> 익명 인증과 랭킹·활동 상태 저장에 사용합니다. <a href="https://firebase.google.com/support/privacy" rel="noreferrer">Firebase 개인정보·보안 안내</a>를 확인할 수 있습니다.</li>
+        <li><strong>Vercel:</strong> 웹페이지 호스팅과 전송, 서비스 운영·보안을 위한 접속 정보 처리에 사용합니다. <a href="https://vercel.com/legal/privacy-notice" rel="noreferrer">Vercel 개인정보 안내</a>를 확인할 수 있습니다.</li>
+        <li><strong>이메일:</strong> 이용자가 직접 메일을 보내면 운영자의 이메일 서비스에서도 회신 주소와 문의 내용을 처리합니다. <a href="https://policies.google.com/privacy?hl=ko" rel="noreferrer">Google 개인정보처리방침</a>을 참고할 수 있습니다.</li></ul>
+        <p>2026년 10월 29일 확인한 현재 Firestore 기본 데이터베이스의 저장 리전은 대한민국 서울(<code>asia-northeast3</code>)입니다. 이는 랭킹·활동 문서를 저장하는 데이터베이스의 위치이며, Firebase 인증·보안 정보나 Vercel 전송·접속 정보의 처리 위치까지 같은 지역으로 제한한다는 뜻은 아닙니다.</p>
+        <p>이들 서비스는 대한민국 외의 인프라에서도 정보를 처리할 수 있습니다. 서비스별 보관·이전 조건은 사용 중인 프로젝트 설정과 제공자 약관에 따라 달라집니다. 해당 내용에 관한 문의는 운영자가 설정을 확인해 안내합니다. 월루미터가 모든 데이터를 국내에만 보관한다고 보장하지 않습니다.</p></section>
+        <section id="advertising"><h2>5. 광고 쿠키와 개인 맞춤 광고 선택</h2>
+        <p>현재 버전의 계산기와 안내 페이지에는 AdSense 광고를 요청하는 코드가 실행되지 않습니다. 광고 시청이나 클릭은 타이머 이용 조건이 아니며, 앱은 월급·근무 조건을 외부 웹 분석 도구로 전송하지 않습니다.</p>
+        <p>향후 Google AdSense 광고를 제공하는 화면에서는 Google과 제3자 광고 제공자가 쿠키 등을 사용해 이 사이트 또는 다른 사이트의 이전 방문 기록을 바탕으로 광고를 게재할 수 있습니다. 개인 맞춤 광고 설정은 <a href="https://myadcenter.google.com/" rel="noreferrer">Google 내 광고 센터</a>에서 관리할 수 있으며, 일부 제3자 광고의 선택은 <a href="https://optout.aboutads.info/" rel="noreferrer">Digital Advertising Alliance의 광고 선택 페이지</a>에서 확인할 수 있습니다.</p>
+        <p>브라우저 설정에서 쿠키나 사이트 저장소를 차단·삭제할 수도 있습니다. 이 경우 설정 복원, 익명 인증, 저장 대기 기록 유지 등이 제한될 수 있습니다. 광고 기능을 다시 제공할 때는 해당 지역의 동의 요건과 광고 제공 범위를 확인하고 이 안내를 갱신합니다.</p>
+        <p>참고: <a href="https://support.google.com/adsense/answer/1348695?hl=ko" rel="noreferrer">Google의 광고 쿠키 고지 안내</a> · <a href="https://policies.google.com/technologies/ads?hl=ko" rel="noreferrer">Google 광고 기술 안내</a></p></section>
+        <section id="rights"><h2>6. 내 기록의 열람·정정·삭제 요청</h2>
+        <ol><li>계산기 하단의 <a href="/#privacy-tools">내 기록과 개인정보</a>를 열어 내 기록 식별자를 확인합니다. 브라우저 데이터를 지우기 전에 확인하는 것이 좋습니다.</li>
+        <li><a href="mailto:dev.garam918@gmail.com?subject=%EC%9B%94%EB%A3%A8%EB%AF%B8%ED%84%B0%20%EA%B0%9C%EC%9D%B8%EC%A0%95%EB%B3%B4%20%EB%AC%B8%EC%9D%98">dev.garam918@gmail.com</a>으로 요청 유형, 기록 식별자, 해당 날짜 또는 전체 기간을 알려주세요. 닉네임만으로는 본인 기록을 확인하기 어려울 수 있습니다.</li>
+        <li>운영자가 요청의 대상과 확인에 필요한 사항을 검토한 뒤 처리 결과 또는 추가 확인 사항을 회신합니다. 문의 작성 버튼은 이메일 작성 화면만 열고 자동으로 발송하지 않습니다.</li></ol>
+        <p>익명 인증 정보를 분실한 경우 확인 가능한 범위가 제한될 수 있습니다. 인증 토큰, 비밀번호나 월급 원본은 삭제 요청에 필요하지 않습니다. 개인정보 처리에 관한 의견이나 처리 제한 요청도 같은 연락처로 보낼 수 있습니다.</p></section>
+        <section><h2>7. 안내 변경</h2><p>처리 항목이나 기능이 달라지면 이 페이지에 변경 내용과 시행일을 반영합니다. 2026년 10월 29일에는 브라우저 저장과 서버 저장의 구분, 자동 삭제 보장 여부, 공개·공유 범위, Firestore 저장 리전, 광고 비활성 상태와 열람·삭제 요청 경로를 구체화했습니다.</p></section>
+      </article>
+      <footer class="article-footer">
+        <p><a href="/">계산기로 돌아가기</a> · <a href="/guide.html">계산 공식</a> · <a href="/examples.html">금액 비교</a> · <a href="/faq.html">FAQ</a></p>
+        <p>운영·개인정보 문의: <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a></p>
+        <p><a href="/about.html">서비스 소개</a> · <a href="/privacy.html">개인정보처리방침</a></p>
+      </footer>
     </main>
   </body>
 </html>
