@@ -18,7 +18,32 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  min-width: 0;
+}
+
+.app-grid > *, .timer-panel > *, .timer-body > * { min-width: 0; }
+.result-amount { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.site-nav {
+  display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 12px 0;
+  border-bottom: 1px solid #ded5c8; font-size: 14px; line-height: 1.5;
+}
+.site-nav a {
+  display: inline-flex; align-items: center; min-height: 36px;
+  color: #5e564e; text-decoration: none; font-weight: 600;
+}
+.site-nav a:hover, .site-nav a[aria-current="page"] {
+  color: #8b5e3c; text-decoration: underline; text-underline-offset: 5px;
+}
+@media (max-width: 639px) {
+  .timer-panel .desk-scene { min-height: 240px; }
+  .timer-panel .desk-scene .wall-clock { top: 20px; left: 20px; }
+  .timer-panel .desk-scene::before { top: 18px; right: 20px; }
+  .timer-panel .desk-scene .person { bottom: 60px; }
+  .timer-panel .desk-scene .desk { bottom: 24px; }
+  .timer-panel .desk-scene .monitor, .timer-panel .desk-scene .mug { bottom: 66px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sleep-bubble.active { animation: none; opacity: 1; }
 }
 
 button,
