@@ -3,67 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>서비스 소개 - 월루미터</title>
-    <meta
-      name="description"
-      content="월루미터는 쉬는 동안 회사로부터 얼마를 벌었는지 계산해주는 온라인 월급 루팡 시뮬레이터입니다."
-    />
+    <title>월루미터 소개와 운영 원칙 - 월루미터</title>
+    <meta name="description" content="월루미터의 제작 목적, 계산과 공개 랭킹 운영 원칙, 개인정보 최소화 방침 및 문의 방법을 소개합니다." />
+    <link rel="canonical" href="https://slacker-nu.vercel.app/about.html" />
+    <meta property="og:site_name" content="월루미터" />
+    <meta property="og:title" content="월루미터 소개와 운영 원칙 - 월루미터" />
+    <meta property="og:description" content="월루미터의 제작 목적, 계산과 공개 랭킹 운영 원칙, 개인정보 최소화 방침 및 문의 방법을 소개합니다." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://slacker-nu.vercel.app/about.html" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <style>
-      body {
-        margin: 0;
-        background: #f7f2ea;
-        color: #24221f;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        line-height: 1.7;
-      }
-
-      main {
-        box-sizing: border-box;
-        max-width: 860px;
-        margin: 0 auto;
-        padding: 48px 20px 64px;
-      }
-
-      a {
-        color: #8b5e3c;
-        font-weight: 700;
-      }
-
-      h1 {
-        margin: 0 0 12px;
-        font-size: clamp(2rem, 5vw, 3rem);
-      }
-
-      p,
-      li {
-        color: #5e564e;
-        font-weight: 600;
-      }
-    </style>
+    <link rel="stylesheet" href="/content.css" />
   </head>
   <body>
-    <main>
-      <p><a href="/">월루미터로 돌아가기</a></p>
-      <h1>월루미터 소개</h1>
-      <p>
-        월루미터는 잠깐 쉬는 시간을 월급 기준 금액으로 환산해보는 온라인 월급
-        루팡 시뮬레이터입니다. 사용자는 월급과 근무 조건을 입력하고 루팡 시작
-        버튼을 누르는 것만으로 실시간 누적 시간과 금액을 확인할 수 있습니다.
-      </p>
-      <ul>
-        <li>오늘 하루 루팡 시간과 금액 계산</li>
-        <li>금액별, 시간별 실시간 랭킹</li>
-        <li>현재 루팡 중인 사용자 수 표시</li>
-        <li>공유 문구와 결과 카드 이미지 생성</li>
-        <li>브라우저에만 저장되는 개인 근무 조건</li>
-      </ul>
-      <p>
-        월루미터는 실제 급여 정산이나 근태 관리를 위한 서비스가 아니라, 재미로
-        보는 계산기입니다. 피드백은
-        <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a>으로
-        보내주세요.
-      </p>
+    <main class="reading-page">
+      <nav class="site-nav" aria-label="주요 메뉴">
+        <a href="/">계산기</a><a href="/guide.html">계산 공식</a>
+        <a href="/examples.html">금액 비교</a><a href="/ranking.html">랭킹 기준</a>
+        <a href="/faq.html">FAQ</a><a href="/about.html" aria-current="page">소개</a>
+        <a href="/privacy.html">개인정보처리방침</a>
+      </nav>
+      <header class="article-header">
+        <p class="brand">월루미터</p>
+        <h1>월루미터 소개와 운영 원칙</h1>
+        <p class="lead">월루미터는 ‘지금 쉬는 시간을 내 월급으로 환산하면 얼마일까?’라는 질문을 간단한 타이머와 계산으로 확인하는 개인 운영 웹 서비스입니다.</p>
+        <p class="article-meta">최종 수정 <time datetime="2026-10-29">2026년 10월 29일</time></p>
+      </header>
+      <article>
+        <section><h2>쉬는 시간을 다른 단위로 바라보기</h2><p>10분이라는 시간은 늘 같지만 월급과 근무 조건에 따라 환산한 금액은 달라집니다. 월루미터는 이 차이를 직접 바꿔 보고 확인할 수 있도록 만들었습니다. 타이머 결과와 함께 계산 공식, 조건별 비교표를 제공해 숫자가 나온 이유도 확인할 수 있습니다.</p>
+        <p>‘월급 루팡’, ‘훔친 금액’은 서비스 안의 가벼운 표현입니다. 실제 급여를 추가로 받거나 회사의 돈을 이체하는 기능은 없습니다. 회사의 업무 규정 위반이나 부정행위를 위한 기능도 제공하지 않습니다.</p></section>
+        <section><h2>서비스를 운영하는 세 가지 기준</h2><ol><li><strong>계산 기준을 공개합니다.</strong> 월급을 근무 초로 나누는 공식, 예시 조건과 반올림 방법을 설명합니다. 결과를 실제 급여 정산과 혼동하지 않도록 안내합니다.</li>
+        <li><strong>개인 근무 조건의 공개를 줄입니다.</strong> 월급과 근무 조건은 브라우저에서 계산하고, 공개 랭킹에는 시간 기록을 사용합니다. 환산액은 내 시급 기준임을 표시합니다.</li>
+        <li><strong>예상 기록과 저장 상태를 구분합니다.</strong> 내 진행 중 기록이 먼저 보일 수 있으며, 서버 저장 실패 시 대기 상태를 알립니다. 통신 실패 상태를 성공한 것처럼 안내하지 않습니다.</li></ol></section>
+        <section><h2>운영자와 문의</h2><p>운영 및 개인정보 문의 담당은 월루미터 운영자입니다. 문의 주소는 <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a>입니다. 계산이 이상하거나 부적절한 닉네임을 발견했다면 발생 날짜, 사용한 브라우저와 상황을 알려주세요. 월급 원본, 비밀번호, 인증 토큰은 보내지 않아도 됩니다.</p>
+        <p>내 서버 기록의 열람·정정·삭제 요청은 <a href="/privacy.html#rights">개인정보 안내의 절차</a>를 이용해 주세요. 일반 피드백 메일과 서버 기록 삭제는 처리 목적이 다릅니다.</p></section>
+        <section><h2>서비스 설명 변경 내역</h2><p><time datetime="2026-10-29">2026년 10월 29일</time>: 한국 시간 기준의 일별 기록, 14시간 한도, 내 시급 환산액, 화면 초기화와 서버 삭제의 차이를 설명에 반영했습니다. 계산 공식과 조건별 비교 예시를 보강하고, 브라우저에 저장하는 개인 달력·주간 및 월간 리포트·가격을 시간으로 바꾸는 기능을 추가했습니다.</p></section>
+      </article>
+      <footer class="article-footer">
+        <p><a href="/">계산기로 돌아가기</a> · <a href="/guide.html">계산 공식</a> · <a href="/examples.html">금액 비교</a> · <a href="/faq.html">FAQ</a></p>
+        <p>운영·개인정보 문의: <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a></p>
+        <p><a href="/about.html">서비스 소개</a> · <a href="/privacy.html">개인정보처리방침</a></p>
+      </footer>
     </main>
   </body>
 </html>
