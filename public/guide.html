@@ -3,92 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>월급 루팡 계산 공식 - 월루미터</title>
-    <meta
-      name="description"
-      content="월루미터가 월급, 근무일, 하루 근무시간으로 루팡 시간과 금액을 계산하는 방식을 설명합니다."
-    />
+    <title>월급 루팡 계산 공식과 검산 방법 - 월루미터</title>
+    <meta name="description" content="월급, 월 근무일, 하루 근무시간을 기준으로 초당 금액을 계산하는 방법과 반올림, 세전·세후 입력 기준을 확인하세요." />
+    <link rel="canonical" href="https://slacker-nu.vercel.app/guide.html" />
+    <meta property="og:site_name" content="월루미터" />
+    <meta property="og:title" content="월급 루팡 계산 공식과 검산 방법 - 월루미터" />
+    <meta property="og:description" content="월급, 월 근무일, 하루 근무시간을 기준으로 초당 금액을 계산하는 방법과 반올림, 세전·세후 입력 기준을 확인하세요." />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://slacker-nu.vercel.app/guide.html" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <style>
-      body {
-        margin: 0;
-        background: #f7f2ea;
-        color: #24221f;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        line-height: 1.7;
-      }
-
-      main {
-        box-sizing: border-box;
-        max-width: 860px;
-        margin: 0 auto;
-        padding: 48px 20px 64px;
-      }
-
-      a {
-        color: #8b5e3c;
-        font-weight: 700;
-      }
-
-      h1 {
-        margin: 0 0 12px;
-        font-size: clamp(2rem, 5vw, 3rem);
-        line-height: 1.2;
-      }
-
-      h2 {
-        margin-top: 32px;
-      }
-
-      p,
-      li {
-        color: #5e564e;
-        font-weight: 600;
-      }
-
-      .panel {
-        border: 1px solid #ded5c8;
-        border-radius: 8px;
-        background: #fff;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgb(36 34 31 / 0.08);
-      }
-
-      code {
-        border-radius: 6px;
-        background: #f2ebe1;
-        padding: 2px 6px;
-        color: #24221f;
-      }
-    </style>
+    <link rel="stylesheet" href="/content.css" />
   </head>
   <body>
-    <main>
-      <p><a href="/">월루미터로 돌아가기</a></p>
-      <h1>월급 루팡 계산 공식</h1>
-      <div class="panel">
-        <p>
-          월루미터는 입력한 월급을 월 근무일과 하루 근무시간으로 나누어 초당
-          수익을 계산하고, 루팡 버튼을 누른 시간만큼 누적 금액을 보여줍니다.
-        </p>
-      </div>
-
-      <h2>기본 공식</h2>
-      <p><code>초당 수익 = 월급 ÷ 월 근무일 ÷ 하루 근무시간 ÷ 3,600</code></p>
-      <p><code>루팡 금액 = 초당 수익 × 루팡 시간</code></p>
-
-      <h2>예시</h2>
-      <p>
-        월급 300만 원, 월 21일, 하루 8시간 근무라면 초당 수익은 약 4.96원입니다.
-        10분 동안 루팡하면 약 2,976원이 누적됩니다.
-      </p>
-
-      <h2>주의사항</h2>
-      <ul>
-        <li>세금, 수당, 연차, 회사별 급여 정책은 반영하지 않습니다.</li>
-        <li>하루 최대 루팡 가능 시간은 14시간으로 제한됩니다.</li>
-        <li>월급과 근무 조건은 서버가 아니라 사용자의 브라우저에만 저장됩니다.</li>
-      </ul>
+    <main class="reading-page">
+      <nav class="site-nav" aria-label="주요 메뉴">
+        <a href="/">계산기</a><a href="/guide.html" aria-current="page">계산 공식</a>
+        <a href="/examples.html">금액 비교</a><a href="/ranking.html">랭킹 기준</a>
+        <a href="/faq.html">FAQ</a><a href="/about.html">소개</a>
+        <a href="/privacy.html">개인정보처리방침</a>
+      </nav>
+      <header class="article-header">
+        <p class="brand">월루미터</p>
+        <h1>월급 루팡 계산 공식과 검산 방법</h1>
+        <p class="lead">같은 10분이라도 월급과 근무 조건이 다르면 환산 금액이 달라집니다. 월루미터가 어떤 값을 나누고 곱하는지, 화면에 나온 금액을 직접 확인하는 방법을 설명합니다.</p>
+        <p class="article-meta">최종 수정 <time datetime="2026-10-29">2026년 10월 29일</time></p>
+      </header>
+      <article>
+        <nav class="page-toc" aria-label="이 페이지 목차"><a href="#inputs">입력 기준</a><a href="#formula">계산 공식</a><a href="#check">직접 검산</a><a href="#rounding">반올림</a><a href="#limits">계산의 한계</a></nav>
+        <section id="inputs"><h2>1. 세 가지 입력값의 기준을 맞추세요</h2>
+        <dl><dt>월급</dt><dd>비교하고 싶은 한 달의 급여 금액을 입력합니다. 세전 금액을 넣으면 세전 기준, 실수령액을 넣으면 그 금액 기준의 환산 결과가 됩니다. 서비스가 세금을 공제하거나 세전 금액을 실수령액으로 바꾸지는 않습니다.</dd>
+        <dt>월 근무일</dt><dd>이번 계산에서 한 달에 일한다고 가정할 날짜 수입니다. 21일은 기본 예시일 뿐 모든 사람에게 적용되는 기준이 아닙니다. 실제 일정에 맞춰 1~31일의 정수로 설정할 수 있습니다.</dd>
+        <dt>하루 근무시간</dt><dd>하루에 일한다고 가정할 시간입니다. 휴게시간을 뺄지 포함할지도 같은 비교 안에서는 일관되게 정하세요. 0시간 초과, 24시간 이하의 값을 사용합니다.</dd></dl>
+        <p>월급은 0원 초과, 10억 원 이하로 입력할 수 있습니다. 근무일이나 근무시간이 0인 상태에서는 계산을 시작할 수 없습니다. 여러 사람 또는 여러 달을 비교할 때는 같은 입력 기준을 유지해야 차이를 이해하기 쉽습니다.</p></section>
+        <section id="formula"><h2>2. 월급을 초 단위 금액으로 나눕니다</h2>
+        <p class="formula">월 근무 초 = 월 근무일 × 하루 근무시간 × 3,600<br>초당 금액 = 월급 ÷ 월 근무 초<br>누적 환산액 = 초당 금액 × 누적 루팡 초</p>
+        <p>한 시간을 3,600초로 바꾸는 이유는 타이머가 초 단위 기록을 사용하기 때문입니다. 루팡을 멈췄다가 다시 시작하면 해당 날짜의 누적 시간을 이어서 계산합니다. 1초보다 짧은 구간은 시간 기록을 확정할 때 정수 초로 처리합니다.</p></section>
+        <section id="check"><h2>3. 월급 300만 원으로 직접 검산해보기</h2>
+        <ol><li>월 21일, 하루 8시간을 가정하면 한 달의 근무시간은 <strong>168시간</strong>입니다.</li>
+        <li>초로 바꾸면 21 × 8 × 3,600 = <strong>604,800초</strong>입니다.</li>
+        <li>3,000,000 ÷ 604,800 = 초당 약 <strong>4.960317원</strong>입니다.</li>
+        <li>10분은 600초이므로 4.960317… × 600 = 약 <strong>2,976.190476원</strong>입니다.</li>
+        <li>화면에는 원 단위로 반올림한 <strong>2,976원</strong>을 표시합니다.</li></ol>
+        <p>이 조건에서 1시간은 약 17,857원입니다. 10분 기록 2,976원을 단순히 여섯 배한 값과 몇 원 차이가 날 수 있는데, 이미 반올림한 숫자를 다시 곱했기 때문입니다. 검산할 때는 원래 월급과 시간으로 다시 계산하는 것이 정확합니다.</p></section>
+        <section id="rounding"><h2>4. 반올림은 마지막 금액 표시에서 합니다</h2>
+        <p>서비스는 계산 도중의 초당 금액을 정수로 잘라서 저장하지 않습니다. 누적 시간 전체에 원래 비율을 적용한 뒤, 최종 금액을 원 단위로 반올림합니다. 화면, 공유 문구, 결과 카드에도 같은 금액 계산 방식을 사용합니다.</p>
+        <p>초당 금액 설명에 보이는 4.96원은 읽기 편하게 줄인 표시입니다. 매일 10분씩 21일을 가정한 월 환산액도 총 12,600초를 기준으로 계산하면 <strong>62,500원</strong>입니다. 반올림된 하루 금액 2,976원에 21을 곱한 62,496원과 구분해야 합니다.</p></section>
+        <section id="limits"><h2>5. 이 결과로 알 수 있는 것과 없는 것</h2>
+        <p>월루미터는 입력한 금액을 시간에 비례해 나눈 시뮬레이터입니다. 실제 급여 정산, 수당, 세금, 연차, 회사의 근태 규정이나 법정 시급을 산정하지 않습니다. 표시 금액이 별도로 적립되거나 현금으로 지급되지도 않습니다.</p>
+        <p>하루 기록 한도는 한국 시간 기준 14시간입니다. 이는 이 서비스의 기록 제한이며 권장 휴식 시간이나 근로시간 기준이 아닙니다. 서로 다른 조건에서 나온 숫자는 <a href="/examples.html">근무 조건별 비교 예시</a>와 함께 살펴보세요.</p></section>
+      </article>
+      <footer class="article-footer">
+        <p><a href="/">계산기로 돌아가기</a> · <a href="/guide.html">계산 공식</a> · <a href="/examples.html">금액 비교</a> · <a href="/faq.html">FAQ</a></p>
+        <p>운영·개인정보 문의: <a href="mailto:dev.garam918@gmail.com">dev.garam918@gmail.com</a></p>
+        <p><a href="/about.html">서비스 소개</a> · <a href="/privacy.html">개인정보처리방침</a></p>
+      </footer>
     </main>
   </body>
 </html>
