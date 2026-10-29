@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>개인 도구 검증 데이터</title></head>
+  <body>
+    <h1>개인 도구 검증 데이터</h1>
+    <p>Firebase 설정이 없는 로컬 검증 환경에서만 합성 기록을 준비합니다. 원래 데이터는 이 탭의 세션 저장소에 백업합니다.</p>
+    <button id="prepare" type="button">합성 기록 준비</button>
+    <button id="restore" type="button">검증 전 데이터 복원</button>
+    <a href="/#my-records">기록 화면 열기</a>
+    <p id="status" role="status"></p>
+    <script type="module">
+      import { createSession, getTodayKey } from '/src/session.ts'
+      import { shiftDate } from '/src/history.ts'
+      const keys = ['slacker.dailyState', 'slacker.settings', 'slacker.nickname', 'slacker.priceGoal']
+      const status = document.getElementById('status')
+      const disabled = Boolean(import.meta.env.VITE_FIREBASE_API_KEY) || !['localhost', '127.0.0.1'].includes(location.hostname)
+      document.getElementById('prepare').disabled = disabled
+      document.getElementById('prepare').addEventListener('click', () => {
+        if (disabled) return
+        if (!sessionStorage.getItem('slacker.fixtureBackup')) sessionStorage.setItem('slacker.fixtureBackup', JSON.stringify(Object.fromEntries(keys.map(key => [key, localStorage.getItem(key)]))))
+        const today = getTodayKey()
+        const settings = { salary: 3000000, workDays: 21, workHours: 8 }
+        const history = Array.from({ length: 40 }, (_, index) => ({
+          date: shiftDate(today, index - 39), seconds: index === 39 ? 1322 : 600 + (index * 487 % 3600),
+          settings: index === 3 ? null : { ...settings, salary: index < 20 ? 2800000 : 3000000 },
+        })).filter(record => new Date(`${record.date}T00:00:00Z`).getUTCDay() !== 0)
+        localStorage.setItem('slacker.dailyState', JSON.stringify({ session: { ...createSession(), accumulatedSeconds: 1322 }, pending: [], history, historySettings: settings }))
+        localStorage.setItem('slacker.settings', JSON.stringify(settings))
+        localStorage.setItem('slacker.nickname', JSON.stringify('리포트 테스트'))
+        localStorage.setItem('slacker.priceGoal', JSON.stringify({ name: '커피 한 잔', price: '5000' }))
+        status.textContent = '합성 기록 준비 완료. 실제 Firebase 데이터는 사용하지 않았습니다.'
+      })
+      document.getElementById('restore').addEventListener('click', () => {
+        const backup = JSON.parse(sessionStorage.getItem('slacker.fixtureBackup') ?? 'null')
+        if (!backup) { status.textContent = '복원할 백업이 없습니다.'; return }
+        for (const [key, value] of Object.entries(backup)) value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value)
+        sessionStorage.removeItem('slacker.fixtureBackup')
+        status.textContent = '검증 전 데이터를 복원했습니다.'
+      })
+    </script>
+  </body>
+</html>
