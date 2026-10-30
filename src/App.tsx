@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth'
+import { trackAnalyticsEvent } from './analytics'
 import ContentSections from './ContentSections'
 import PrivacyTools from './PrivacyTools'
 import HistoryDashboard from './HistoryDashboard'
@@ -319,11 +320,23 @@ function App() {
       setNicknameSaveStatus('saved'); setNicknameMessage('닉네임이 저장되었습니다.')
     } catch { setNicknameSaveStatus('error'); setNicknameMessage('닉네임 저장에 실패했습니다. 다시 시도해 주세요.') }
   }
-  const startSlacking = () => { if (!settingsMessage && !isPreparing) act('start') }
-  const stopSlacking = () => act('pause')
-  const finishWork = () => act('finish')
+  const startSlacking = () => {
+    if (!settingsMessage && !isPreparing) {
+      act('start')
+      if (!session.isSlacking && !hasReachedDailyLimit) trackAnalyticsEvent('timer_start')
+    }
+  }
+  const stopSlacking = () => {
+    act('pause')
+    if (session.isSlacking) trackAnalyticsEvent('timer_pause')
+  }
+  const finishWork = () => {
+    act('finish')
+    if (!session.isOffWork && (session.isSlacking || elapsedSeconds > 0)) trackAnalyticsEvent('timer_finish')
+  }
   const resetSession = () => {
     act('reset'); setShareStatus('idle'); setShareText(''); setShareMessage(''); setShareCardMessage('')
+    trackAnalyticsEvent('timer_reset')
   }
 
   const shareSlackingRecord = async () => {
