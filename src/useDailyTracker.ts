@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { saveRanking } from './rankings'
+import { trackAnalyticsEvent } from './analytics'
 import { archiveTracker, normalizeHistory, validHistorySettings } from './history'
 import {
   acknowledge, advanceTracker, changeSession, clampSeconds, createSession,
@@ -113,6 +114,7 @@ export function useDailyTracker(nickname: string, uid: string | null, enabled: b
             return record.sessionDate === next.session.sessionDate && saved > elapsed(next.session, Date.now())
               ? restoreTotal(next, record.sessionDate, saved, Date.now()) : next
           })
+          trackAnalyticsEvent('ranking_saved')
         }
         retryDelayRef.current = 1000
         setSaveStatus('saved')
