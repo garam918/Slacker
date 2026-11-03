@@ -34,6 +34,7 @@ test('absolute totals make duplicate or out-of-order saves harmless', () => {
   total = nextRankingTotal(total, 20)
   assert.equal(nextRankingTotal(total, 10), 20)
   assert.equal(nextRankingTotal(total, 100000), MAX_DAILY_SECONDS)
+  assert.equal(nextRankingTotal(14 * 3600, total), 14 * 3600)
 })
 test('reset clears only the displayed portion and new time remains saveable', () => {
   let tracker = changeSession(empty(start), 'start', start, '테스트', 'uid')
@@ -58,9 +59,11 @@ test('midnight splits time and retains yesterday offline queue', () => {
   tracker = acknowledge(tracker, tracker.pending[0], 10)
   assert.deepEqual(tracker.session, today)
 })
-test('14h auto-stops and queues even after background suspension', () => {
+test('12h auto-stops and queues even after background suspension', () => {
   const morning = at('2026-10-29T01:00:00+09:00')
-  let tracker = changeSession(empty(morning), 'start', morning, '테스트', 'uid')
+  const previous = empty(morning)
+  previous.session.accumulatedSeconds = 11 * 3600
+  let tracker = changeSession(previous, 'start', morning, '테스트', 'uid')
   tracker = advanceTracker(tracker, morning + 16 * 3600 * 1000, '테스트', 'uid')
   assert.equal(tracker.session.isSlacking, false)
   assert.equal(tracker.pending[0].totalSeconds, MAX_DAILY_SECONDS)
@@ -75,6 +78,32 @@ test('sleeping through midnight after reaching limit never starts a new session'
   assert.equal(tracker.session.sessionDate, '2026-10-31')
   assert.equal(tracker.session.isSlacking, false)
   assert.equal(tracker.pending.length, 1)
+  assert.equal(tracker.pending[0].totalSeconds, 120 * 60)
+})
+test('a suspended legacy timer saves only 120 minutes and a late confirmation cannot resume it', () => {
+  const tracker = empty(start)
+  tracker.session = { ...tracker.session, isSlacking: true, startedAt: start }
+  const late = start + 6 * 3600_000
+  assert.equal(elapsed(tracker.session, late), 7200)
+  const paused = changeSession(tracker, 'continue', late, '테스트', 'uid')
+  assert.equal(paused.session.isSlacking, false)
+  assert.equal(paused.session.pausedByRunLimit, true)
+  assert.equal(paused.pending[0].totalSeconds, 7200)
+  assert.equal(advanceTracker(paused, late + 1000, '테스트', 'uid'), paused)
+  const resumed = changeSession(paused, 'start', late + 2000, '테스트', 'uid')
+  assert.equal(elapsed(resumed.session, late + 5000), 7203)
+  assert.equal(resumed.session.pausedByRunLimit, false)
+})
+test('confirmation renews the deadline once and server recovery preserves it', () => {
+  const tracker = changeSession(empty(start), 'start', start, '테스트')
+  const confirmation = start + 115 * 60_000
+  assert.equal(changeSession(tracker, 'continue', confirmation - 1, '테스트'), tracker)
+  const renewed = changeSession(tracker, 'continue', confirmation, '테스트')
+  assert.equal(changeSession(renewed, 'continue', confirmation + 1000, '테스트'), renewed)
+  const recovered = restoreTotal(renewed, getTodayKey(start), 7000, confirmation + 60_000)
+  const paused = advanceTracker(recovered, confirmation + 3 * 3600_000, '테스트')
+  assert.equal(paused.session.isSlacking, false)
+  assert.equal(paused.pending[0].totalSeconds, 7000 + 119 * 60)
 })
 test('acknowledging older snapshot preserves newer queued total', () => {
   const record = { sessionDate: getTodayKey(start), totalSeconds: 10, nickname: '테스트', uid: 'uid' }
