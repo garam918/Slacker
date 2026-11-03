@@ -1,3 +1,5 @@
+import { MAX_DAILY_HOURS } from './session'
+
 type ContentSectionsProps = {
   dailyLimitAmount: number
   earnedAmount: number
@@ -35,10 +37,10 @@ function ContentSections({
           <p className="mt-3 text-sm leading-6 text-[#5e564e]">누적 금액은 원래 비율로 계산한 뒤 원 단위로 반올림합니다.</p>
         </article>
         <article className="min-w-0 rounded-lg border border-[#ded5c8] bg-white p-5">
-          <h2 className="text-lg font-bold">14시간 기준 환산액</h2>
+          <h2 className="text-lg font-bold">{MAX_DAILY_HOURS}시간 기준 환산액</h2>
           <p className="mt-2 text-2xl font-bold">{formatWon(dailyLimitAmount)}</p>
           <p className="mt-3 text-sm leading-6 text-[#5e564e]">
-            이 서비스의 하루 기록 한도는 14시간입니다. 권장 휴식 시간이나 근로시간 기준은 아닙니다.
+            이 서비스의 하루 기록 한도는 {MAX_DAILY_HOURS}시간입니다. 권장 휴식 시간이나 근로시간 기준은 아닙니다.
           </p>
         </article>
       </div>
