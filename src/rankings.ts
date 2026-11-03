@@ -1,5 +1,5 @@
 import {
-  collection, deleteField, doc, getCountFromServer, getDoc, getDocs, limit,
+  collection, deleteField, doc, getCountFromServer, getDoc, getDocFromServer, getDocs, limit,
   onSnapshot, orderBy, query, runTransaction, serverTimestamp, setDoc, where,
   type Unsubscribe,
 } from 'firebase/firestore'
@@ -12,6 +12,11 @@ export type RankingEntry = {
   nickname: string
   elapsedSeconds: number
   earnedAmount: number
+}
+export type RankingPosition = {
+  rank: number
+  participants: number
+  elapsedSeconds: number
 }
 
 const rankingsCollection = (dateKey = getTodayKey()) => {
@@ -38,19 +43,27 @@ export async function getOwnRanking(uid: string, date: string) {
   return clampSeconds(Number(snapshot.data()?.elapsedSeconds ?? 0))
 }
 
-export async function getRankingTopPercent(elapsedSeconds: number, uid: string, date = getTodayKey()) {
-  if (!db || elapsedSeconds <= 0) return null
-  const totalSeconds = clampSeconds(elapsedSeconds)
+export async function getRankingPosition(elapsedSeconds: number, uid: string, date = getTodayKey(), storedSeconds?: number): Promise<RankingPosition | null> {
+  if (!db || !uid) return null
   const entries = rankingsCollection(date)
-  const [total, higher, own] = await Promise.all([
+  // Reuse the confirmed server total for this UID and date when the caller has it.
+  const ownSeconds = storedSeconds === undefined
+    ? clampSeconds(Number((await getDocFromServer(doc(entries, uid))).data()?.elapsedSeconds ?? 0))
+    : clampSeconds(storedSeconds)
+  const totalSeconds = Math.max(clampSeconds(elapsedSeconds), ownSeconds)
+  if (totalSeconds <= 0) return null
+  const [total, higher] = await Promise.all([
     getCountFromServer(query(entries, where('elapsedSeconds', '>', 0))),
     getCountFromServer(query(entries, where('elapsedSeconds', '>', totalSeconds))),
-    getDoc(doc(entries, uid)),
   ])
-  const ownSeconds = Number(own.data()?.elapsedSeconds ?? 0)
-  const rank = Math.max(0, higher.data().count - (ownSeconds > totalSeconds ? 1 : 0)) + 1
-  const participants = Math.max(1, total.data().count + (ownSeconds > 0 ? 0 : 1))
-  return Math.min(100, Math.max(1, Math.ceil(rank / participants * 100)))
+  const rank = higher.data().count + 1
+  const participants = Math.max(rank, total.data().count + (ownSeconds > 0 ? 0 : 1))
+  return { rank, participants, elapsedSeconds: totalSeconds }
+}
+
+export async function getRankingTopPercent(elapsedSeconds: number, uid: string, date = getTodayKey()) {
+  const position = await getRankingPosition(elapsedSeconds, uid, date)
+  return position ? Math.min(100, Math.max(1, Math.ceil(position.rank / position.participants * 100))) : null
 }
 
 export function subscribeToRankings(
