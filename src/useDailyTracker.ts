@@ -3,7 +3,7 @@ import { saveRanking } from './rankings'
 import { trackAnalyticsEvent } from './analytics'
 import { archiveTracker, normalizeHistory, validHistorySettings } from './history'
 import {
-  acknowledge, advanceTracker, changeSession, clampSeconds, createSession,
+  acknowledge, advanceTracker, changeSession, clampDailySeconds, clampSeconds, createSession,
   dayStart, elapsed, getTodayKey, restoreTotal, type PendingRecord, type Session, type Settings, type Tracker,
 } from './session'
 
@@ -21,9 +21,9 @@ function loadTracker(): Tracker {
     const session: Session = {
       ...createSession(now),
       ...(validDate ? source : {}),
-      accumulatedSeconds: clampSeconds(Math.max(Number(source?.accumulatedSeconds ?? 0), Number(source?.submittedSeconds ?? 0))),
+      accumulatedSeconds: clampDailySeconds(Math.max(Number(source?.accumulatedSeconds ?? 0), Number(source?.submittedSeconds ?? 0))),
       submittedSeconds: clampSeconds(Number(source?.submittedSeconds ?? 0)),
-      displayOffsetSeconds: clampSeconds(Number(source?.displayOffsetSeconds ?? Math.max(0, Number(source?.submittedSeconds ?? 0) - Number(source?.accumulatedSeconds ?? 0)))),
+      displayOffsetSeconds: clampDailySeconds(Number(source?.displayOffsetSeconds ?? Math.max(0, Number(source?.submittedSeconds ?? 0) - Number(source?.accumulatedSeconds ?? 0)))),
       startedAt: validDate && Number.isFinite(source?.startedAt) ? source!.startedAt! : null,
       isSlacking: Boolean(validDate && source?.isSlacking && Number.isFinite(source?.startedAt)),
       isOffWork: Boolean(source?.isOffWork),
@@ -33,7 +33,7 @@ function loadTracker(): Tracker {
     for (const item of saved?.pending ?? legacyPending) {
       const recordDate = item.sessionDate ?? getTodayKey('createdAt' in item ? Number(item.createdAt) || now : now)
       if (!/^\d{4}-\d{2}-\d{2}$/.test(recordDate) || !Number.isFinite(dayStart(recordDate))) continue
-      const totalSeconds = clampSeconds(Number(item.totalSeconds ?? ('finalElapsedSeconds' in item ? item.finalElapsedSeconds : 0)))
+      const totalSeconds = clampDailySeconds(Number(item.totalSeconds ?? ('finalElapsedSeconds' in item ? item.finalElapsedSeconds : 0)))
       if (totalSeconds <= 0) continue
       const previous = pending.find(record => record.sessionDate === recordDate && record.uid === item.uid)
       if (previous) previous.totalSeconds = Math.max(previous.totalSeconds, totalSeconds)
@@ -138,7 +138,7 @@ export function useDailyTracker(nickname: string, uid: string | null, enabled: b
     return () => window.removeEventListener('online', retry)
   }, [])
 
-  const act = useCallback((action: 'start' | 'pause' | 'finish' | 'reset') => {
+  const act = useCallback((action: Parameters<typeof changeSession>[1]) => {
     const time = Date.now()
     setNow(time)
     update(current => changeSession(current, action, time, nickname, uid ?? undefined))
