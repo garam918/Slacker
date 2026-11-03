@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { RotateCcw, ShoppingBag } from 'lucide-react'
 import { formatHistoryDuration } from './history'
 import { DEFAULT_GOAL, MAX_TARGET_PRICE, priceTime, readPriceGoal, type PriceGoal } from './priceTime'
-import { MAX_DAILY_SECONDS, validateSettings, type Settings } from './session'
+import { MAX_DAILY_HOURS, MAX_DAILY_SECONDS, validateSettings, type Settings } from './session'
 
 const GOAL_KEY = 'slacker.priceGoal'
 const examples = [
@@ -60,7 +60,7 @@ function PriceCalculator({ settings, elapsedSeconds, onEditSettings }: { setting
             <div className="goal-progress-heading"><span>오늘 기록 기준</span><strong>{displayProgress}%</strong></div>
             <progress className="goal-progress" aria-label="오늘 기록의 목표 달성률" max={100} value={result.progress} />
             <p className="goal-remaining">{result.reached ? '오늘 목표 환산액에 도달했습니다.' : <>목표까지 <strong>{formatHistoryDuration(result.remainingSeconds)}</strong> 남았습니다.</>}</p>
-            {result.requiredSeconds > MAX_DAILY_SECONDS && !result.reached ? <p className="record-basis">오늘의 14시간 기록 한도보다 큰 목표입니다.</p> : null}
+            {result.requiredSeconds > MAX_DAILY_SECONDS && !result.reached ? <p className="record-basis">오늘의 {MAX_DAILY_HOURS}시간 기록 한도보다 큰 목표입니다.</p> : null}
             <p className="record-basis">현재 근무 조건의 환산액이며 실제로 저축되거나 적립된 돈이 아닙니다.</p>
           </> : <p className="empty-record">{priceError || '입력한 가격과 근무 조건으로 시간을 계산할 수 없습니다.'}</p>}
         </div>
