@@ -10,7 +10,7 @@ import './features.css'
 import { markActiveSlacker, markInactiveSlacker, subscribeToActiveSlackerCount } from './activity'
 import { auth, isFirebaseConfigured } from './firebase'
 import { getOwnRanking, getRankingTopPercent, isNicknameAvailable, renameRankingNickname, subscribeToRankings, type RankingEntry, type RankingSort } from './rankings'
-import { calculateAmount, elapsed, getTodayKey, MAX_DAILY_SECONDS, validateSettings, type Settings } from './session'
+import { calculateAmount, elapsed, getRunDeadline, getTodayKey, MAX_DAILY_HOURS, MAX_DAILY_SECONDS, MAX_RUN_MINUTES, RUN_WARNING_MINUTES, validateSettings, type Settings } from './session'
 import { useDailyTracker } from './useDailyTracker'
 
 const SETTINGS_KEY = 'slacker.settings'
@@ -207,6 +207,9 @@ function App() {
   const historyRecords = archiveTracker(tracker, tracker, now, settings).history ?? []
   const displayedSeconds = Math.max(0, elapsedSeconds - session.displayOffsetSeconds)
   const hasReachedDailyLimit = elapsedSeconds >= MAX_DAILY_SECONDS
+  const runDeadline = getRunDeadline(session)
+  const runRemainingMs = runDeadline === null ? 0 : runDeadline - now
+  const canContinue = !hasReachedDailyLimit && runRemainingMs > 0 && runRemainingMs <= RUN_WARNING_MINUTES * 60_000
   const settingsMessage = validateSettings(settings)
   const calculateEarnedAmount = useCallback((seconds: number) => calculateAmount(seconds, settings), [settings])
   const earnedAmount = calculateEarnedAmount(elapsedSeconds)
@@ -417,8 +420,8 @@ function App() {
               {isInfoOpen ? (
                 <div className="absolute left-0 top-full z-10 mt-3 w-[min(320px,calc(100vw-40px))] rounded-lg border border-[#ded5c8] bg-white p-4 text-sm font-semibold leading-6 text-[#5e564e] shadow-lg">
                   월급, 근무일, 하루 근무시간을 입력한 뒤 루팡 시작을 누르면
-                  시간이 카운트됩니다. 다시 일하기나 퇴근하기를 누르면 누적
-                  시간이 랭킹에 반영됩니다.
+                  시간이 카운트됩니다. 시작하거나 계속하기를 누른 시점부터 최대 {MAX_RUN_MINUTES}분을 기록합니다.
+                  기한이 지나거나 다시 일하기·퇴근하기를 누르면 누적 시간을 저장합니다.
                 </div>
               ) : null}
             </div>
@@ -649,10 +652,27 @@ function App() {
                   >
                     {isPreparing ? '기록 확인 중' : '루팡 시작'}
                   </button>
+                  <p className="text-xs leading-5 text-[#5e564e]">
+                    한 번에 최대 {MAX_RUN_MINUTES}분을 기록합니다. 종료 {RUN_WARNING_MINUTES}분 전부터 계속하기로 시간을 연장할 수 있습니다.
+                  </p>
+                  {canContinue && (
+                    <div className="rounded-md border border-[#8b5e3c] bg-[#f2ebe1] p-3">
+                      <p role="status" className="text-sm font-semibold">곧 자동으로 일시정지됩니다.</p>
+                      <p className="mt-1 text-sm">남은 시간 {formatDuration(Math.ceil(runRemainingMs / 1000))}</p>
+                      <button type="button" onClick={() => act('continue')} className="mt-2 min-h-11 w-full rounded-md bg-[#8b5e3c] px-3 py-2 font-semibold text-white">
+                        계속하기 ({MAX_RUN_MINUTES}분)
+                      </button>
+                    </div>
+                  )}
+                  {session.pausedByRunLimit && !hasReachedDailyLimit && (
+                    <p role="status" className="rounded-md bg-[#f2ebe1] p-3 text-sm">
+                      {MAX_RUN_MINUTES}분이 지나 자동으로 일시정지됐습니다. 다시 시작하면 오늘 기록에 이어서 쌓입니다.
+                    </p>
+                  )}
                   {settingsMessage ? <div role="alert" className="rounded-md bg-[#f2ebe1] px-3 py-2 text-sm text-[#b95738]">{settingsMessage} <button className="underline" onClick={() => { setSettingsOpen(true); document.querySelector('.settings-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>근무 조건 수정</button></div> : null}
                   {hasReachedDailyLimit ? (
                     <p className="rounded-md bg-[#f2ebe1] px-3 py-2 text-center text-xs font-bold text-[#8b5e3c]">
-                      오늘 루팡 가능 시간 14시간을 모두 사용했습니다.
+                      오늘 루팡 가능 시간 {MAX_DAILY_HOURS}시간을 모두 사용했습니다.
                     </p>
                   ) : null}
                   <button
@@ -724,7 +744,7 @@ function App() {
                 >
                   화면 기록 초기화
                 </button>
-                <p className="text-xs leading-5 text-[#7d746a]">화면 기록을 초기화해도 오늘의 랭킹 기록과 14시간 한도는 유지됩니다.</p>
+                <p className="text-xs leading-5 text-[#7d746a]">화면 기록을 초기화해도 오늘의 랭킹 기록과 {MAX_DAILY_HOURS}시간 한도는 유지됩니다.</p>
               </div>
             </div>
           </section>
