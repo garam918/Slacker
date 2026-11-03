@@ -1,4 +1,8 @@
-export const MAX_DAILY_SECONDS = 14 * 3600
+export const MAX_DAILY_HOURS = 12
+export const MAX_DAILY_SECONDS = MAX_DAILY_HOURS * 3600
+export const MAX_RUN_MINUTES = 120
+export const RUN_WARNING_MINUTES = 5
+const RUN_MS = MAX_RUN_MINUTES * 60_000
 const DAY_MS = 24 * 3600 * 1000
 const KST_OFFSET_MS = 9 * 3600 * 1000
 
@@ -10,6 +14,8 @@ export type Session = {
   displayOffsetSeconds: number
   isSlacking: boolean
   startedAt: number | null
+  runDeadlineAt?: number
+  pausedByRunLimit?: boolean
   isOffWork: boolean
 }
 export type PendingRecord = {
@@ -34,7 +40,12 @@ export function dayStart(date: string) {
 }
 
 export function clampSeconds(value: number) {
-  return Number.isFinite(value) ? Math.min(MAX_DAILY_SECONDS, Math.max(0, Math.floor(value))) : 0
+  // Preserve finalized records from when the daily limit was 14 hours.
+  return Number.isFinite(value) ? Math.min(14 * 3600, Math.max(0, Math.floor(value))) : 0
+}
+
+export function clampDailySeconds(value: number) {
+  return Math.min(MAX_DAILY_SECONDS, clampSeconds(value))
 }
 
 export function createSession(now = Date.now()): Session {
@@ -56,9 +67,16 @@ export function calculateAmount(seconds: number, settings: Settings) {
   return Math.round(settings.salary * seconds / (settings.workDays * settings.workHours * 3600))
 }
 
+export function getRunDeadline(session: Session) {
+  if (!session.isSlacking || session.startedAt === null) return null
+  const fallback = session.startedAt + RUN_MS
+  const deadline = session.runDeadlineAt
+  return typeof deadline === 'number' && deadline >= session.startedAt && deadline <= fallback ? deadline : fallback
+}
+
 export function elapsed(session: Session, now: number) {
-  const end = Math.min(now, dayStart(session.sessionDate) + DAY_MS)
-  return clampSeconds(session.accumulatedSeconds + (
+  const end = Math.min(now, dayStart(session.sessionDate) + DAY_MS, getRunDeadline(session) ?? Infinity)
+  return clampDailySeconds(session.accumulatedSeconds + (
     session.isSlacking && session.startedAt !== null
       ? Math.max(0, Math.floor((end - session.startedAt) / 1000)) : 0
   ))
@@ -79,7 +97,7 @@ function enqueue(tracker: Tracker, nickname: string, uid?: string): Tracker {
   }
 }
 
-// Close each crossed KST day before advancing; a daily limit also stops a suspended tab.
+// Split at KST midnight while preserving the original confirmation deadline.
 export function advanceTracker(tracker: Tracker, now: number, nickname: string, uid?: string): Tracker {
   let result = tracker
   let session = result.session
@@ -87,32 +105,52 @@ export function advanceTracker(tracker: Tracker, now: number, nickname: string, 
   while (session.sessionDate !== getTodayKey(now)) {
     const midnight = dayStart(session.sessionDate) + DAY_MS
     const total = elapsed(session, midnight)
-    const keepRunning = session.isSlacking && total < MAX_DAILY_SECONDS
+    const deadline = getRunDeadline(session)
+    const keepRunning = deadline !== null && midnight < deadline && total < MAX_DAILY_SECONDS
     result = enqueue({ ...result, session: { ...session, accumulatedSeconds: total } }, nickname, uid)
     // An inactive day has no record to split, even after a long absence.
     const next = createSession(keepRunning ? midnight : now)
-    session = { ...next, isSlacking: keepRunning, startedAt: keepRunning ? midnight : null }
+    session = {
+      ...next, isSlacking: keepRunning, startedAt: keepRunning ? midnight : null,
+      runDeadlineAt: keepRunning ? deadline : undefined,
+      pausedByRunLimit: session.pausedByRunLimit || (deadline !== null && deadline <= midnight && total < MAX_DAILY_SECONDS),
+    }
     result = { ...result, session }
   }
-  if (session.isSlacking && elapsed(session, now) >= MAX_DAILY_SECONDS) {
+  const deadline = getRunDeadline(session)
+  const total = elapsed(session, now)
+  if (deadline !== null && (now >= deadline || total >= MAX_DAILY_SECONDS)) {
+    const dailyLimitReached = total >= MAX_DAILY_SECONDS
     result = enqueue({ ...result, session: {
-      ...session, accumulatedSeconds: MAX_DAILY_SECONDS, isSlacking: false,
-      startedAt: null, isOffWork: true,
+      ...session, accumulatedSeconds: total, isSlacking: false,
+      startedAt: null, runDeadlineAt: undefined, isOffWork: dailyLimitReached,
+      pausedByRunLimit: !dailyLimitReached,
     } }, nickname, uid)
   }
   return result
 }
 
-export function changeSession(tracker: Tracker, action: 'start' | 'pause' | 'finish' | 'reset', now: number, nickname: string, uid?: string): Tracker {
+export function changeSession(tracker: Tracker, action: 'start' | 'continue' | 'pause' | 'finish' | 'reset', now: number, nickname: string, uid?: string): Tracker {
   let result = advanceTracker(tracker, now, nickname, uid)
   const session = result.session
   const total = elapsed(session, now)
+  if (action === 'continue') {
+    const deadline = getRunDeadline(session)
+    if (deadline === null || deadline - now > RUN_WARNING_MINUTES * 60_000) return result
+    return { ...result, session: {
+      ...session, accumulatedSeconds: total, startedAt: now, runDeadlineAt: now + RUN_MS,
+    } }
+  }
   if (action === 'start') {
     if (session.isSlacking || total >= MAX_DAILY_SECONDS) return result
-    return { ...result, session: { ...session, isSlacking: true, startedAt: now, isOffWork: false } }
+    return { ...result, session: {
+      ...session, isSlacking: true, startedAt: now, runDeadlineAt: now + RUN_MS,
+      isOffWork: false, pausedByRunLimit: false,
+    } }
   }
   result = enqueue({ ...result, session: {
     ...session, accumulatedSeconds: total, isSlacking: false, startedAt: null,
+    runDeadlineAt: undefined, pausedByRunLimit: false,
     isOffWork: action === 'finish' || total === MAX_DAILY_SECONDS,
     displayOffsetSeconds: action === 'reset' ? total : session.displayOffsetSeconds,
   } }, nickname, uid)
@@ -135,21 +173,24 @@ export function restoreTotal(tracker: Tracker, date: string, total: number, now:
   if (tracker.session.sessionDate !== date) return tracker
   const session = tracker.session
   const current = elapsed(session, now)
-  const restored = clampSeconds(Math.max(current, total))
+  const restored = clampDailySeconds(Math.max(current, total))
+  const deadline = getRunDeadline(session)
+  const keepRunning = deadline !== null && restored < MAX_DAILY_SECONDS
   return {
     ...tracker,
     session: {
       ...session, accumulatedSeconds: restored,
       submittedSeconds: Math.max(session.submittedSeconds, clampSeconds(total)),
-      startedAt: session.isSlacking && restored < MAX_DAILY_SECONDS ? now : null,
-      isSlacking: session.isSlacking && restored < MAX_DAILY_SECONDS,
+      startedAt: keepRunning ? Math.min(now, deadline, dayStart(date) + DAY_MS) : null,
+      runDeadlineAt: keepRunning ? deadline : undefined,
+      isSlacking: keepRunning,
       isOffWork: session.isOffWork || restored === MAX_DAILY_SECONDS,
     },
   }
 }
 
 export function nextRankingTotal(stored: number, incoming: number) {
-  return clampSeconds(Math.max(clampSeconds(stored), clampSeconds(incoming)))
+  return Math.max(clampSeconds(stored), clampDailySeconds(incoming))
 }
 import type { HistoryRecord } from './history'
 
