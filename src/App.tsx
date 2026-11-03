@@ -5,6 +5,7 @@ import ContentSections from './ContentSections'
 import PrivacyTools from './PrivacyTools'
 import HistoryDashboard from './HistoryDashboard'
 import PriceCalculator from './PriceCalculator'
+import MyRanking from './MyRanking'
 import { archiveTracker } from './history'
 import './features.css'
 import { markActiveSlacker, markInactiveSlacker, subscribeToActiveSlackerCount } from './activity'
@@ -840,13 +841,13 @@ function App() {
                 </div>
               ) : null}
 
-              {visibleRankings.map((entry, index) => (
+              {visibleRankings.map(entry => (
                 <div
                   className="flex items-center gap-3 rounded-md border border-[#eadfce] bg-[#fbfaf7] p-3"
                   key={entry.id}
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#8b5e3c] text-sm font-black text-white">
-                    {index + 1}
+                    {visibleRankings.findIndex(item => item.elapsedSeconds === entry.elapsedSeconds) + 1}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold">{entry.nickname}</p>
@@ -859,6 +860,7 @@ function App() {
                 </div>
               ))}
             </div>
+            <MyRanking uid={uid} date={todayKey} elapsedSeconds={elapsedSeconds} submittedSeconds={session.submittedSeconds} isPreparing={isPreparing} isSaving={rankingSaveStatus === 'saving'} />
           </aside>
 
           <ContentSections
