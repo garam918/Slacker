@@ -43,13 +43,13 @@ test('old pending records retain time without inventing a historical salary', ()
   assert.equal(report.summary.amount, 0)
 })
 
-test('a suspended timer archives every crossed day with the last known conditions', () => {
+test('a suspended timer preserves its 120-minute deadline across midnight and in history', () => {
   const before = at('2026-10-27T23:59:50+09:00')
   const previous = transition(empty(before), 'start', before)
   const after = at('2026-10-29T12:00:00+09:00')
   const tracker = archiveTracker(previous, advanceTracker(previous, after, '테스트'), after, settings)
   assert.deepEqual(tracker.history.map(record => [record.date, record.seconds, recordAmount(record)]), [
-    ['2026-10-27', 10, 50], ['2026-10-28', 50400, 250000],
+    ['2026-10-27', 10, 50], ['2026-10-28', 7190, 35665],
   ])
   assert.equal(tracker.session.isSlacking, false)
 })
