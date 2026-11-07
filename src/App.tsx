@@ -5,19 +5,19 @@ import ContentSections from './ContentSections'
 import PrivacyTools from './PrivacyTools'
 import HistoryDashboard from './HistoryDashboard'
 import PriceCalculator from './PriceCalculator'
+import TimerPanel from './TimerPanel'
 import MyRanking from './MyRanking'
 import { archiveTracker } from './history'
 import './features.css'
 import { markActiveSlacker, markInactiveSlacker, subscribeToActiveSlackerCount } from './activity'
 import { auth, isFirebaseConfigured } from './firebase'
 import { getOwnRanking, getRankingTopPercent, isNicknameAvailable, renameRankingNickname, subscribeToRankings, type RankingEntry, type RankingSort } from './rankings'
-import { calculateAmount, elapsed, getRunDeadline, getTodayKey, MAX_DAILY_HOURS, MAX_DAILY_SECONDS, MAX_RUN_MINUTES, RUN_WARNING_MINUTES, validateSettings, type Settings } from './session'
+import { calculateAmount, elapsed, getRunDeadline, getTodayKey, MAX_DAILY_SECONDS, MAX_RUN_MINUTES, RUN_WARNING_MINUTES, validateSettings, type Settings } from './session'
 import { useDailyTracker } from './useDailyTracker'
 
 const SETTINGS_KEY = 'slacker.settings'
 const NICKNAME_KEY = 'slacker.nickname'
 const MAX_NICKNAME_LENGTH = 12
-const SHARE_URL = 'https://slacker-nu.vercel.app/'
 const blockedNicknameWords = [
   'admin',
   'administrator',
@@ -78,7 +78,6 @@ const defaultSettings: Settings = {
 
 const currencyFormatter = new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW', maximumFractionDigits: 0 })
 const numberFormatter = new Intl.NumberFormat('ko-KR')
-function formatWon(amount: number) { return `${numberFormatter.format(Math.round(amount))}원` }
 
 function readStorage<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') {
@@ -117,36 +116,6 @@ function formatDuration(totalSeconds: number) {
   return [hours, minutes, seconds]
     .map((value) => String(value).padStart(2, '0'))
     .join(':')
-}
-
-function formatShareDuration(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-  const parts = [
-    hours > 0 ? `${hours}시간` : '',
-    minutes > 0 ? `${minutes}분` : '',
-    seconds > 0 || totalSeconds === 0 ? `${seconds}초` : '',
-  ].filter(Boolean)
-
-  return parts.join(' ')
-}
-
-async function copyTextToClipboard(text: string) {
-  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text)
-    return
-  }
-
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.setAttribute('readonly', '')
-  textarea.style.position = 'fixed'
-  textarea.style.opacity = '0'
-  document.body.appendChild(textarea)
-  textarea.select()
-  document.execCommand('copy')
-  textarea.remove()
 }
 
 function createAnonymousNickname() {
@@ -192,10 +161,6 @@ function App() {
   const [rankingStatus, setRankingStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(isFirebaseConfigured ? 'loading' : 'idle')
   const [rankingMessage, setRankingMessage] = useState('')
   const [recovery, setRecovery] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
-  const [shareStatus, setShareStatus] = useState<'idle' | 'sharing' | 'shared' | 'copied' | 'error'>('idle')
-  const [shareMessage, setShareMessage] = useState('')
-  const [shareText, setShareText] = useState('')
-  const [shareCardMessage, setShareCardMessage] = useState('')
   const [isInfoOpen, setIsInfoOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(() => window.matchMedia('(min-width: 1024px)').matches)
   const [activeSlackerCount, setActiveSlackerCount] = useState(0)
@@ -339,64 +304,8 @@ function App() {
     if (!session.isOffWork && (session.isSlacking || elapsedSeconds > 0)) trackAnalyticsEvent('timer_finish')
   }
   const resetSession = () => {
-    act('reset'); setShareStatus('idle'); setShareText(''); setShareMessage(''); setShareCardMessage('')
+    act('reset')
     trackAnalyticsEvent('timer_reset')
-  }
-
-  const shareSlackingRecord = async () => {
-    if (elapsedSeconds <= 0) return
-    setShareStatus('sharing'); setShareMessage('')
-    let percent: number | null = null
-    if (isFirebaseConfigured && uid) {
-      try { percent = await getRankingTopPercent(elapsedSeconds, uid, todayKey) } catch { /* Share the record without an unverified percentile. */ }
-    }
-    const text = [
-      `나는 오늘 ${formatShareDuration(elapsedSeconds)} 월급 루팡 성공`,
-      ...(percent !== null ? [`현재 루팡리그 상위 ${percent}% (시간 기준)`] : []),
-      `회사로부터 ${formatWon(earnedAmount)}을 훔쳤습니다.`,
-      '당신의 순위는?', `너도 해보기 👉 ${SHARE_URL}`,
-    ].join('\n')
-    setShareText(text)
-    try {
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: '월루미터', text })
-          setShareStatus('shared'); setShareMessage('기록을 공유했습니다.'); return
-        } catch (error) {
-          if (error instanceof DOMException && error.name === 'AbortError') { setShareStatus('idle'); return }
-        }
-      }
-      await copyTextToClipboard(text)
-      setShareStatus('copied'); setShareMessage('공유 문구를 복사했습니다.')
-    } catch { setShareStatus('error'); setShareMessage('아래 문구를 직접 복사해 주세요.') }
-  }
-
-  const downloadShareCard = () => {
-    if (elapsedSeconds <= 0) return
-    const canvas = document.createElement('canvas')
-    canvas.width = 1200; canvas.height = 630
-    const context = canvas.getContext('2d')
-    if (!context) { setShareCardMessage('이미지를 만들지 못했습니다.'); return }
-    context.fillStyle = '#f7f2ea'; context.fillRect(0, 0, 1200, 630)
-    context.fillStyle = '#24221f'; context.fillRect(64, 64, 1072, 502)
-    context.fillStyle = '#fff8ef'; context.fillRect(92, 92, 1016, 446)
-    const line = (text: string, y: number, size: number, color: string) => {
-      context.fillStyle = color
-      while (size > 20) {
-        context.font = `700 ${size}px system-ui, sans-serif`
-        if (context.measureText(text).width <= 916) break
-        size -= 2
-      }
-      context.fillText(text, 142, y)
-    }
-    line('월루미터 루팡 기록', 170, 36, '#8b5e3c')
-    line(formatWon(earnedAmount), 280, 72, '#24221f')
-    line(`${formatShareDuration(elapsedSeconds)} 월급 루팡 성공`, 356, 40, '#24221f')
-    line(`닉네임: ${nickname}`, 424, 30, '#5e564e')
-    line('너도 해보기: slacker-nu.vercel.app', 482, 30, '#5e564e')
-    const link = document.createElement('a')
-    link.href = canvas.toDataURL('image/png'); link.download = `wolumeter-${getTodayKey()}.png`; link.click()
-    setShareCardMessage('공유 카드 이미지를 저장했습니다.')
   }
 
   return (
@@ -572,183 +481,27 @@ function App() {
             </details>
           </aside>
 
-          <section className="timer-panel order-1 min-w-0 flex flex-col rounded-lg border border-[#ded5c8] bg-white shadow-sm lg:order-2">
-            <div className="border-b border-[#ded5c8] p-5 sm:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-[#8b5e3c]">
-                    {session.isOffWork
-                      ? '퇴근 완료'
-                      : session.isSlacking
-                        ? '루팡 중'
-                        : '업무 복귀'}
-                  </p>
-                  <h2 className="result-amount mt-2 text-4xl font-black tracking-normal">
-                    {currencyFormatter.format(displayedAmount)}
-                  </h2>
-                  <p className="mt-2 text-xs leading-5 text-[#7d746a]">입력 조건으로 계산한 재미용 환산액이며, 실제 현금은 지급되지 않습니다.</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#5e564e]">
-                    <span>월급 {formatWon(settings.salary)} · {settings.workDays}일 · {settings.workHours}시간</span>
-                    <button type="button" disabled={session.isSlacking} className="min-h-8 underline underline-offset-2 disabled:opacity-50" onClick={() => { setSettingsOpen(true); document.querySelector('.settings-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>조건 변경</button>
-                  </div>
-                  {session.isOffWork ? (
-                    <p className="mt-3 rounded-md bg-[#f2ebe1] px-3 py-2 text-sm font-bold text-[#6e6259]">
-                      오늘 하루 월급 루팡으로{' '}
-                      {currencyFormatter.format(earnedAmount)} 벌었습니다.
-                    </p>
-                  ) : null}
-                </div>
-                <div className="rounded-md bg-[#24221f] px-4 py-3 text-white">
-                  <p className="text-xs font-medium text-[#d8cdbc]">누적 시간</p>
-                  <p className="font-mono text-2xl font-bold">
-                    {formatDuration(displayedSeconds)}
-                  </p>
-                  {session.displayOffsetSeconds > 0 ? <p className="mt-1 text-xs">오늘 총 {formatDuration(elapsedSeconds)}</p> : null}
-                </div>
-              </div>
-            </div>
-
-            <div className="timer-body grid min-w-0 gap-5 p-5 sm:p-6 xl:grid-cols-[minmax(0,1fr)_200px]">
-              <div
-                className={`desk-scene min-w-0 order-2 xl:order-1 ${session.isOffWork ? 'off-work' : ''}`}
-                role="img"
-                aria-label={
-                  session.isOffWork
-                    ? '사용자가 떠나고 노트북과 책상만 남아있는 그림'
-                    : '책상에 앉아 졸고 있는 사람 그림'
-                }
-              >
-                <div
-                  className={session.isSlacking ? 'sleep-bubble active' : 'sleep-bubble'}
-                >
-                  Zzz
-                </div>
-                <div className="wall-clock">
-                  <span></span>
-                </div>
-                <div className="person">
-                  <div className="head">
-                    <span className="hair"></span>
-                    <span className="eye left"></span>
-                    <span className="eye right"></span>
-                    <span className="mouth"></span>
-                  </div>
-                  <div className="body"></div>
-                  <div className="arm"></div>
-                </div>
-                <div className="monitor">
-                  <span></span>
-                </div>
-                <div className="mug"></div>
-                <div className="desk"></div>
-              </div>
-
-              <div className="order-1 min-w-0 flex flex-col justify-between gap-4 xl:order-2">
-                <div className="space-y-3">
-                  <button
-                    className="w-full rounded-md bg-[#8b5e3c] px-4 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#744c2e] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#c2b2a2]"
-                    disabled={session.isSlacking || hasReachedDailyLimit || Boolean(settingsMessage) || isPreparing}
-                    type="button"
-                    onClick={startSlacking}
-                  >
-                    {isPreparing ? '기록 확인 중' : '루팡 시작'}
-                  </button>
-                  <p className="text-xs leading-5 text-[#5e564e]">
-                    한 번에 최대 {MAX_RUN_MINUTES}분을 기록합니다. 종료 {RUN_WARNING_MINUTES}분 전부터 계속하기로 시간을 연장할 수 있습니다.
-                  </p>
-                  {canContinue && (
-                    <div className="rounded-md border border-[#8b5e3c] bg-[#f2ebe1] p-3">
-                      <p role="status" className="text-sm font-semibold">곧 자동으로 일시정지됩니다.</p>
-                      <p className="mt-1 text-sm">남은 시간 {formatDuration(Math.ceil(runRemainingMs / 1000))}</p>
-                      <button type="button" onClick={() => act('continue')} className="mt-2 min-h-11 w-full rounded-md bg-[#8b5e3c] px-3 py-2 font-semibold text-white">
-                        계속하기 ({MAX_RUN_MINUTES}분)
-                      </button>
-                    </div>
-                  )}
-                  {session.pausedByRunLimit && !hasReachedDailyLimit && (
-                    <p role="status" className="rounded-md bg-[#f2ebe1] p-3 text-sm">
-                      {MAX_RUN_MINUTES}분이 지나 자동으로 일시정지됐습니다. 다시 시작하면 오늘 기록에 이어서 쌓입니다.
-                    </p>
-                  )}
-                  {settingsMessage ? <div role="alert" className="rounded-md bg-[#f2ebe1] px-3 py-2 text-sm text-[#b95738]">{settingsMessage} <button className="underline" onClick={() => { setSettingsOpen(true); document.querySelector('.settings-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>근무 조건 수정</button></div> : null}
-                  {hasReachedDailyLimit ? (
-                    <p className="rounded-md bg-[#f2ebe1] px-3 py-2 text-center text-xs font-bold text-[#8b5e3c]">
-                      오늘 루팡 가능 시간 {MAX_DAILY_HOURS}시간을 모두 사용했습니다.
-                    </p>
-                  ) : null}
-                  <button
-                    className="w-full rounded-md border border-[#24221f] bg-white px-4 py-4 text-base font-bold text-[#24221f] transition hover:bg-[#f7f2ea] focus:outline-none focus:ring-2 focus:ring-[#24221f] focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#d8cdbc] disabled:text-[#aaa095]"
-                    disabled={!session.isSlacking || session.isOffWork}
-                    type="button"
-                    onClick={stopSlacking}
-                  >
-                    다시 일하기
-                  </button>
-                  <button
-                    className="w-full rounded-md bg-[#24221f] px-4 py-4 text-base font-bold text-white shadow-sm transition hover:bg-[#3a3731] focus:outline-none focus:ring-2 focus:ring-[#24221f] focus:ring-offset-2"
-                    type="button"
-                    onClick={finishWork}
-                  >
-                    퇴근하기
-                  </button>
-                </div>
-
-                <div>
-                  <button
-                    className="w-full rounded-md border border-[#8b5e3c] bg-[#fbfaf7] px-4 py-3 text-sm font-bold text-[#8b5e3c] transition hover:bg-[#f2ebe1] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2 disabled:cursor-not-allowed disabled:border-[#d8cdbc] disabled:text-[#aaa095]"
-                    disabled={elapsedSeconds <= 0 || shareStatus === 'sharing' || Boolean(settingsMessage)}
-                    type="button"
-                    onClick={() => void shareSlackingRecord()}
-                  >
-                    {shareStatus === 'sharing'
-                      ? '공유 문구 생성 중'
-                      : '내 루팡 기록 공유하기'}
-                  </button>
-                  {shareMessage ? (
-                    <p
-                      className={`mt-2 text-center text-xs font-semibold ${
-                        shareStatus === 'error'
-                          ? 'text-[#b95738]'
-                          : 'text-[#3f6b4d]'
-                      }`}
-                    >
-                      {shareMessage}
-                    </p>
-                  ) : null}
-                  {shareText ? (
-                    <textarea
-                      aria-label="공유 문구"
-                      className="mt-3 h-32 w-full resize-none rounded-md border border-[#d8cdbc] bg-[#fbfaf7] p-3 text-xs font-semibold leading-5 text-[#5e564e] outline-none"
-                      readOnly
-                      value={shareText}
-                    />
-                  ) : null}
-                  <button
-                    className="mt-3 w-full rounded-md border border-[#d8cdbc] px-4 py-3 text-sm font-semibold text-[#6e6259] transition hover:bg-[#f2ebe1] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2 disabled:cursor-not-allowed disabled:text-[#aaa095]"
-                    disabled={elapsedSeconds <= 0 || Boolean(settingsMessage)}
-                    type="button"
-                    onClick={downloadShareCard}
-                  >
-                    결과 카드 이미지 저장
-                  </button>
-                  {shareCardMessage ? (
-                    <p className="mt-2 text-center text-xs font-semibold text-[#3f6b4d]">
-                      {shareCardMessage}
-                    </p>
-                  ) : null}
-                </div>
-
-                <button
-                  className="w-full rounded-md border border-[#d8cdbc] px-4 py-3 text-sm font-semibold text-[#6e6259] transition hover:bg-[#f2ebe1] focus:outline-none focus:ring-2 focus:ring-[#8b5e3c] focus:ring-offset-2"
-                  type="button"
-                  onClick={resetSession}
-                >
-                  화면 기록 초기화
-                </button>
-                <p className="text-xs leading-5 text-[#7d746a]">화면 기록을 초기화해도 오늘의 랭킹 기록과 {MAX_DAILY_HOURS}시간 한도는 유지됩니다.</p>
-              </div>
-            </div>
-          </section>
+          <TimerPanel
+            session={session}
+            settings={settings}
+            settingsMessage={settingsMessage}
+            elapsedSeconds={elapsedSeconds}
+            displayedSeconds={displayedSeconds}
+            earnedAmount={earnedAmount}
+            displayedAmount={displayedAmount}
+            hasReachedDailyLimit={hasReachedDailyLimit}
+            canContinue={canContinue}
+            runRemainingMs={runRemainingMs}
+            isPreparing={isPreparing}
+            nickname={nickname}
+            getTopPercent={async () => isFirebaseConfigured && uid ? getRankingTopPercent(elapsedSeconds, uid, todayKey) : null}
+            onStart={startSlacking}
+            onContinue={() => act('continue')}
+            onPause={stopSlacking}
+            onFinish={finishWork}
+            onReset={resetSession}
+            onEditSettings={() => { setSettingsOpen(true); document.querySelector('.settings-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+          />
 
           <aside className="order-3 min-w-0 h-fit rounded-lg border border-[#ded5c8] bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
